@@ -3,7 +3,7 @@ import SessionProvider from "@/components/SessionProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Ops Board",
+  title: "Ops Board — Open Local CTO",
   description: "OpenLocal internal project management",
 };
 

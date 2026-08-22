@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth ──────────────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         String    @default("MEMBER") // ADMIN | MEMBER
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tasks        Task[]
+  notes        Note[]
+  events       CalendarEvent[]
+  credentials  Credential[]
+
+  @@map("users")
+}
+
+// ─── Projects ───────────────────────────────────────────────────────────────────
+
+model Project {
+  id          String   @id @default(cuid())
+  name       String
+  description String?
+  repoUrl    String?  // GitHub repo URL
+  color      String   @default("#5c7cfa") // for UI tagging
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tasks      Task[]
+  notes      Note[]
+  events    CalendarEvent[]
+
+  @@map("projects")
+}
+
+// ─── Tasks ─────────────────────────────────────────────────────────────────────
+
+model Task {
+  id          String    @id @default(cuid())
+  title      String
+  description String?
+  status     String    @default("TODO") // TODO | IN_PROGRESS | DONE | BLOCKED
+  priority   String    @default("MEDIUM") // LOW | MEDIUM | HIGH | URGENT
+  dueDate    DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  assigneeId String
+  assignee   User      @relation(fields: [assigneeId], references: [id])
+
+  projectId  String
+  project    Project   @relation(fields: [projectId], references: [id])
+
+  @@map("tasks")
+}
+
+// ─── Calendar ──────────────────────────────────────────────────────────────────
+
+model CalendarEvent {
+  id        String   @id @default(cuid())
+  title    String
+  description String?
+  start    DateTime
+  end      DateTime?
+  allDay   Boolean  @default(false)
+  location String?
+  meetingUrl String?
+  createdAt DateTime @default(now())
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+
+  organizerId String
+  organizer  User    @relation(fields: [organizerId], references: [id])
+
+  @@map("calendar_events")
+}
+
+// ─── Notes ─────────────────────────────────────────────────────────────────────
+
+model Note {
+  id        String   @id @default(cuid())
+  title    String
+  content  String?
+  isShared Boolean  @default(false) // shared with project or private
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  authorId String
+  author   User    @relation(fields: [authorId], references: [id])
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+
+  @@map("notes")
+}
+
+// ─── Credentials ────────────────────────────────────────────────────────────────
+
+model Credential {
+  id        String   @id @default(cuid())
+  name     String   // e.g. "Railway", "Open Local Staging DB"
+  category String   @default("OTHER") // CLOUD | DATABASE | API | OTHER
+  url      String?
+  username String?
+  password String?  // encrypted in production; plain for now in dev
+  notes    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ownerId  String
+  owner    User    @relation(fields: [ownerId], references: [id])
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+
+  @@map("credentials")
+}

@@ -6,18 +6,31 @@ import { useEffect, useState, useCallback } from "react";
 
 type Commit = {
   sha: string;
-  commit: { message: string; author: { name: string; date: string } };
-  html_url: string;
-  author: { login: string; avatar_url: string } | null;
+  message: string;
+  authorName: string;
+  authorLogin: string | null;
+  avatarUrl: string | null;
+  repoUrl: string;
+  htmlUrl: string;
+  committedAt: string;
+  linkedTasks: string[];
+  artifact: { id: string; name: string; color: string } | null;
 };
 
-type RepoResult = {
-  owner: string;
-  repo: string;
-  label: string;
-  fork: boolean;
-  data: any[];
+type Issue = {
+  id: number;
+  number: number;
+  title: string;
+  body: string | null;
+  state: string;
+  html_url: string;
+  labels: { name: string; color: string }[];
+  created_at: string;
+  updated_at: string;
+  user: { login: string; avatar_url: string };
 };
+
+type RepoResult = { owner: string; repo: string; label: string; fork: boolean; data: any[] };
 
 function timeAgo(date: string) {
   const secs = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
@@ -30,28 +43,65 @@ function timeAgo(date: string) {
   return `${days}d ago`;
 }
 
+const ARTIFACT_COLORS: Record<string, string> = {
+  "artifact-api-server": "#f59e0b",
+  "artifact-open-local": "#60a5fa",
+  "artifact-mobile": "#34d399",
+  "artifact-db": "#f472b6",
+};
+
 export default function GitHubPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [commits, setCommits] = useState<RepoResult[]>([]);
-  const [prs, setPrs] = useState<RepoResult[]>([]);
-  const [tab, setTab] = useState<"commits" | "prs" | "compare">("commits");
+  const [tab, setTab] = useState<"commits" | "issues" | "workflow">("commits");
+  const [commits, setCommits] = useState<Commit[]>([]);
+  const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [importingIssue, setImportingIssue] = useState<number | null>(null);
 
   useEffect(() => { if (status === "unauthenticated") router.push("/login"); }, [status, router]);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [c, p] = await Promise.all([
+    const [cData, iData] = await Promise.all([
       fetch("/api/github?type=commits").then((r) => r.json()),
-      fetch("/api/github?type=prs").then((r) => r.json()),
+      fetch("/api/github?type=issues").then((r) => r.json()),
     ]);
-    setCommits(c.results || []);
-    setPrs(p.results || []);
+    setCommits(cData.commits || []);
+    setIssues(iData.issues || []);
     setLoading(false);
   }, []);
 
   useEffect(() => { if (status === "authenticated") load(); }, [status, load]);
+
+  async function handleSync() {
+    setSyncing(true);
+    await fetch("/api/github?type=commits&sync=1");
+    await load();
+    setSyncing(false);
+  }
+
+  async function importIssue(issue: Issue) {
+    setImportingIssue(issue.id);
+    const res = await fetch("/api/github", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        issueNumber: issue.number,
+        repoOwner: "mscartiles-lab",
+        repoName: "open-local",
+        projectId: "open-local-platform",
+        assigneeId: (session?.user as any)?.id,
+      }),
+    });
+    setImportingIssue(null);
+    if (res.ok) {
+      alert(`✅ Imported "#${issue.number} ${issue.title}" as a task!`);
+    } else {
+      alert("❌ Import failed — do you have a GitHub token set?");
+    }
+  }
 
   if (status === "loading" || loading) {
     return (
@@ -61,17 +111,15 @@ export default function GitHubPage() {
     );
   }
 
-  const allCommits = commits.flatMap((r) =>
-    (r.data as Commit[]).map((c) => ({
-      ...c,
-      source: r.label,
-      fork: r.fork,
-      shortSha: c.sha.slice(0, 7),
-    }))
-  ).sort((a, b) => new Date(b.commit.author.date).getTime() - new Date(a.commit.author.date).getTime());
+  const allCommits = [...commits].sort((a, b) => new Date(b.committedAt).getTime() - new Date(a.committedAt).getTime());
 
-  const upstreamCommits = allCommits.filter((c) => !c.fork);
-  const forkCommits = allCommits.filter((c) => c.fork);
+  // Group commits by artifact
+  const byArtifact: Record<string, Commit[]> = {};
+  for (const c of allCommits) {
+    const key = c.artifact?.name || "Untagged";
+    if (!byArtifact[key]) byArtifact[key] = [];
+    byArtifact[key].push(c);
+  }
 
   return (
     <div style={{ display: "flex", height: "100vh" }}>
@@ -81,90 +129,104 @@ export default function GitHubPage() {
         {[
           { href: "/dashboard", label: "Dashboard", icon: "⌂" },
           { href: "/tasks", label: "Tasks", icon: "◎" },
-          { href: "/calendar", label: "Calendar", icon: "◷" },
-          { href: "/notes", label: "Notes", icon: "▤" },
+          { href: "/sprints", label: "Sprints", icon: "⚡" },
+          { href: "/milestones", label: "Milestones", icon: "🏁" },
           { href: "/github", label: "GitHub", icon: "⌥", active: true },
-          { href: "/credentials", label: "Credentials", icon: "🔑" },
+          { href: "/investors", label: "Investors", icon: "📈" },
+          { href: "/calendar", label: "Calendar", icon: "◷" },
         ].map((n) => (
           <a key={n.href} href={n.href} style={{
             display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "6px",
             color: n.active ? "var(--color-text)" : "var(--color-muted)",
             fontSize: "14px", fontWeight: n.active ? "600" : "400",
-            background: n.active ? "rgba(92,124,250,0.1)" : "transparent"
+            background: n.active ? "rgba(92,124,250,0.1)" : "transparent",
           }}>
             <span>{n.icon}</span> {n.label}
           </a>
         ))}
       </aside>
 
-      {/* Main */}
       <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         {/* Header */}
         <div style={{ padding: "20px 28px", borderBottom: "1px solid var(--color-border)", display: "flex", alignItems: "center", gap: "16px" }}>
           <h1 style={{ fontSize: "18px", fontWeight: "700" }}>GitHub</h1>
           <div style={{ display: "flex", gap: "4px", background: "var(--color-surface)", borderRadius: "8px", padding: "3px" }}>
-            {(["commits", "prs", "compare"] as const).map((t) => (
+            {(["commits", "issues", "workflow"] as const).map((t) => (
               <button key={t} onClick={() => setTab(t)} style={{
                 background: tab === t ? "var(--color-brand)" : "transparent",
                 color: tab === t ? "white" : "var(--color-muted)",
                 border: "none", borderRadius: "5px", padding: "5px 14px",
-                fontSize: "13px", cursor: "pointer", textTransform: "capitalize"
+                fontSize: "13px", cursor: "pointer", textTransform: "capitalize",
               }}>{t}</button>
             ))}
           </div>
-          <div style={{ marginLeft: "auto", display: "flex", gap: "12px" }}>
+          <div style={{ marginLeft: "auto", display: "flex", gap: "10px" }}>
+            <button onClick={handleSync} disabled={syncing} className="btn-ghost" style={{ fontSize: "13px", padding: "6px 12px" }}>
+              {syncing ? "⟳ Syncing..." : "⟳ Sync Now"}
+            </button>
             <a href="https://github.com/mscartiles-lab/open-local" target="_blank" rel="noopener noreferrer" className="btn-ghost" style={{ fontSize: "13px", padding: "6px 12px" }}>
               mscartiles-lab ↗
-            </a>
-            <a href="https://github.com/Verstige/open-local" target="_blank" rel="noopener noreferrer" className="btn-ghost" style={{ fontSize: "13px", padding: "6px 12px" }}>
-              Your Fork ↗
             </a>
           </div>
         </div>
 
-        {/* Content */}
         <div style={{ flex: 1, overflow: "auto", padding: "24px 28px" }}>
 
-          {/* COMMITS TAB */}
+          {/* ─── COMMITS TAB ──────────────────────────────────────── */}
           {tab === "commits" && (
             <div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "24px" }}>
-                <div className="card" style={{ borderTop: "3px solid #22c55e" }}>
-                  <div style={{ fontSize: "13px", fontWeight: "600", color: "#22c55e", marginBottom: "12px" }}>📦 Main Repo — mscartiles-lab</div>
-                  <div style={{ fontSize: "24px", fontWeight: "700" }}>{upstreamCommits.length}</div>
-                  <div style={{ fontSize: "12px", color: "var(--color-muted)" }}>total commits tracked</div>
-                </div>
-                <div className="card" style={{ borderTop: "3px solid #5c7cfa" }}>
-                  <div style={{ fontSize: "13px", fontWeight: "600", color: "#5c7cfa", marginBottom: "12px" }}>🍴 Your Fork — Verstige</div>
-                  <div style={{ fontSize: "24px", fontWeight: "700" }}>{forkCommits.length}</div>
-                  <div style={{ fontSize: "12px", color: "var(--color-muted)" }}>commits on your fork</div>
-                </div>
+              {/* Stats */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px", marginBottom: "24px" }}>
+                {Object.entries(byArtifact).map(([name, commits]) => (
+                  <div key={name} className="card" style={{ borderTop: `3px solid ${ARTIFACT_COLORS[name] || "#7c7f8e"}` }}>
+                    <div style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: ARTIFACT_COLORS[name] || "var(--color-muted)", marginBottom: "6px" }}>{name}</div>
+                    <div style={{ fontSize: "24px", fontWeight: "700" }}>{commits.length}</div>
+                    <div style={{ fontSize: "11px", color: "var(--color-muted)" }}>commits</div>
+                  </div>
+                ))}
               </div>
 
               {allCommits.length === 0 && (
                 <div className="card" style={{ textAlign: "center", padding: "40px", color: "var(--color-muted)" }}>
-                  No commits found. Make sure GITHUB_TOKEN is set in your .env
+                  No commits found. Make sure <code>GITHUB_TOKEN</code> is set in your Railway env vars.
                 </div>
               )}
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                 {allCommits.map((commit) => (
                   <div key={commit.sha} className="card" style={{ display: "flex", alignItems: "flex-start", gap: "14px", padding: "12px 16px" }}>
-                    <img src={commit.author?.avatar_url || `https://github.com/${commit.author?.login || "ghost"}.png`} alt="" width={32} height={32} style={{ borderRadius: "50%", flexShrink: 0, marginTop: "2px" }} />
+                    <img
+                      src={commit.avatarUrl || `https://github.com/${commit.authorLogin || "ghost"}.png`}
+                      alt=""
+                      width={32} height={32}
+                      style={{ borderRadius: "50%", flexShrink: 0, marginTop: "2px" }}
+                    />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px", flexWrap: "wrap" }}>
-                        <span style={{ fontSize: "12px", color: "var(--color-muted)", fontWeight: "500" }}>{commit.commit.author.name}</span>
-                        <span style={{ fontSize: "11px", background: commit.fork ? "rgba(92,124,250,0.15)" : "rgba(34,197,94,0.15)", color: commit.fork ? "#5c7cfa" : "#22c55e", padding: "1px 7px", borderRadius: "999px", fontWeight: "600" }}>
-                          {commit.source}
+                        <span style={{ fontSize: "12px", fontWeight: "500", color: "var(--color-muted)" }}>{commit.authorName}</span>
+                        {commit.artifact && (
+                          <span style={{ fontSize: "10px", background: `${ARTIFACT_COLORS[commit.artifact.id] || "#7c7f8e"}22`, color: ARTIFACT_COLORS[commit.artifact.id] || "#7c7f8e", padding: "1px 7px", borderRadius: "999px", fontWeight: "600" }}>
+                            {commit.artifact.name}
+                          </span>
+                        )}
+                        <span style={{ fontSize: "11px", color: "var(--color-muted)" }}>{timeAgo(commit.committedAt)}</span>
+                        {commit.linkedTasks.length > 0 && (
+                          <span style={{ fontSize: "10px", background: "rgba(92,124,250,0.15)", color: "#5c7cfa", padding: "1px 7px", borderRadius: "999px" }}>
+                            → #{commit.linkedTasks.length} task(s)
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: "13px", color: "var(--color-text)", marginBottom: "6px", wordBreak: "break-word", lineHeight: "1.5" }}>
+                        {commit.message.split("\n")[0]}
+                      </div>
+                      <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                        <a href={commit.htmlUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: "11px", color: "var(--color-brand)", fontFamily: "monospace" }}>
+                          {commit.sha.slice(0, 7)}
+                        </a>
+                        <span style={{ fontSize: "11px", color: "var(--color-muted)" }}>
+                          {commit.repoUrl.replace("https://github.com/", "").split("/")[1] || commit.repoUrl}
                         </span>
-                        <span style={{ fontSize: "11px", color: "var(--color-muted)" }}>{timeAgo(commit.commit.author.date)}</span>
                       </div>
-                      <div style={{ fontSize: "13px", color: "var(--color-text)", marginBottom: "4px", wordBreak: "break-word" }}>
-                        {commit.commit.message.split("\n")[0]}
-                      </div>
-                      <a href={commit.html_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: "11px", color: "var(--color-brand)", fontFamily: "monospace" }}>
-                        {commit.shortSha}
-                      </a>
                     </div>
                   </div>
                 ))}
@@ -172,78 +234,115 @@ export default function GitHubPage() {
             </div>
           )}
 
-          {/* PRS TAB */}
-          {tab === "prs" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              {prs.flatMap((r) => r.data).length === 0 && (
-                <div className="card" style={{ textAlign: "center", padding: "40px", color: "var(--color-muted)" }}>No open pull requests</div>
-              )}
-              {prs.flatMap((r) => r.data.map((pr: any) => ({ ...pr, source: r.label }))).map((pr: any) => (
-                <div key={pr.id} className="card" style={{ padding: "14px 16px" }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
-                    <div style={{ fontSize: "16px" }}>🔀</div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: "14px", fontWeight: "600", marginBottom: "4px" }}>{pr.title}</div>
-                      <div style={{ fontSize: "12px", color: "var(--color-muted)", marginBottom: "8px" }}>
-                        #{pr.number} by {pr.user?.login} · {pr.head?.ref} → {pr.base?.ref}
-                      </div>
-                      <div style={{ display: "flex", gap: "8px" }}>
-                        <a href={pr.html_url} target="_blank" rel="noopener noreferrer" className="btn-ghost" style={{ fontSize: "12px", padding: "4px 10px" }}>View PR ↗</a>
-                        <span style={{ fontSize: "11px", background: "rgba(34,197,94,0.15)", color: "#22c55e", padding: "4px 10px", borderRadius: "999px", display: "flex", alignItems: "center" }}>
-                          {pr.state}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* COMPARE TAB */}
-          {tab === "compare" && (
+          {/* ─── ISSUES TAB ───────────────────────────────────────── */}
+          {tab === "issues" && (
             <div>
-              <div className="card" style={{ marginBottom: "20px", padding: "20px" }}>
-                <h2 style={{ fontSize: "15px", fontWeight: "700", marginBottom: "12px" }}>Upstream vs Fork</h2>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: "16px", alignItems: "center" }}>
-                  <div>
-                    <div style={{ fontSize: "12px", color: "var(--color-muted)", marginBottom: "4px" }}>Main Repo</div>
-                    <div style={{ fontSize: "14px", fontWeight: "600" }}>mscartiles-lab/open-local</div>
-                    <div style={{ fontSize: "12px", color: "var(--color-muted)", marginTop: "4px" }}>{upstreamCommits.length} commits</div>
-                  </div>
-                  <div style={{ fontSize: "20px", color: "var(--color-muted)" }}>⟷</div>
-                  <div>
-                    <div style={{ fontSize: "12px", color: "var(--color-muted)", marginBottom: "4px" }}>Your Fork</div>
-                    <div style={{ fontSize: "14px", fontWeight: "600", color: "#5c7cfa" }}>Verstige/open-local</div>
-                    <div style={{ fontSize: "12px", color: "var(--color-muted)", marginTop: "4px" }}>{forkCommits.length} commits</div>
-                  </div>
+              <div style={{ marginBottom: "20px", padding: "14px", background: "var(--color-surface)", borderRadius: "8px", border: "1px solid var(--color-border)" }}>
+                <div style={{ fontSize: "13px", color: "var(--color-muted)" }}>
+                  Open issues from <strong style={{ color: "var(--color-text)" }}>mscartiles-lab/open-local</strong>.
+                  Click <strong style={{ color: "var(--color-brand)" }}>Import as Task</strong> to add any issue directly to your task board.
                 </div>
               </div>
 
-              <div className="card" style={{ padding: "20px" }}>
-                <h3 style={{ fontSize: "14px", fontWeight: "600", marginBottom: "16px" }}>How the workflow works</h3>
-                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {issues.length === 0 && (
+                <div className="card" style={{ textAlign: "center", padding: "40px", color: "var(--color-muted)" }}>
+                  No open issues or token not set. Add GITHUB_TOKEN to env vars.
+                </div>
+              )}
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {issues.map((issue) => (
+                  <div key={issue.id} className="card" style={{ padding: "14px 16px" }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+                      <img src={issue.user.avatar_url} alt="" width={28} height={28} style={{ borderRadius: "50%", flexShrink: 0, marginTop: "2px" }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px", flexWrap: "wrap" }}>
+                          <span style={{ fontSize: "12px", color: "var(--color-muted)" }}>#{issue.number}</span>
+                          <span style={{ fontSize: "14px", fontWeight: "600" }}>{issue.title}</span>
+                        </div>
+                        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "8px" }}>
+                          {issue.labels.map((label) => (
+                            <span key={label.name} style={{ fontSize: "10px", background: `#${label.color}22`, color: `#${label.color}`, padding: "1px 7px", borderRadius: "999px", fontWeight: "600" }}>
+                              {label.name}
+                            </span>
+                          ))}
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                          <a href={issue.html_url} target="_blank" rel="noopener noreferrer" className="btn-ghost" style={{ fontSize: "12px", padding: "4px 10px" }}>
+                            View on GitHub ↗
+                          </a>
+                          <button
+                            onClick={() => importIssue(issue)}
+                            disabled={importingIssue === issue.id}
+                            className="btn-primary"
+                            style={{ fontSize: "12px", padding: "4px 12px" }}
+                          >
+                            {importingIssue === issue.id ? "Importing..." : "Import as Task →"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ─── WORKFLOW TAB ─────────────────────────────────────── */}
+          {tab === "workflow" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+              <div className="card" style={{ padding: "24px" }}>
+                <h2 style={{ fontSize: "15px", fontWeight: "700", marginBottom: "16px" }}>Your Fork Workflow</h2>
+                <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                   {[
-                    { step: "1", title: "Work on your fork", desc: "Clone your fork locally → make changes → push to Verstige/open-local" },
-                    { step: "2", title: "Open a Pull Request", desc: "From your branch → send PR to mscartiles-lab/open-local:main" },
-                    { step: "3", title: "Chrissy reviews", desc: "She reviews the PR on GitHub, requests changes or approves" },
-                    { step: "4", title: "Merge to main", desc: "Once approved, PR gets merged into the main repo" },
+                    { step: "1", icon: "🍴", title: "Work on your fork", desc: "git checkout -b feature/my-change → make changes → git push origin feature/my-change", color: "#5c7cfa" },
+                    { step: "2", icon: "🔀", title: "Open Pull Request", desc: "Go to github.com/Verstige/open-local → New Pull Request → compare your branch into mscartiles-lab:main", color: "#a78bfa" },
+                    { step: "3", icon: "👀", title: "Chrissy Reviews", desc: "She reviews on GitHub, requests changes or approves. Iterate in your fork — PR updates automatically.", color: "#fbbf24" },
+                    { step: "4", icon: "🚀", title: "Merge to Main", desc: "Once approved, Chrissy merges the PR. Commits now appear in the upstream commit log.", color: "#22c55e" },
                   ].map((item) => (
-                    <div key={item.step} style={{ display: "flex", gap: "14px" }}>
-                      <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "var(--color-brand)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: "700", flexShrink: 0 }}>{item.step}</div>
+                    <div key={item.step} style={{ display: "flex", gap: "16px" }}>
+                      <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: `${item.color}22`, color: item.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", flexShrink: 0 }}>
+                        {item.icon}
+                      </div>
                       <div>
-                        <div style={{ fontSize: "13px", fontWeight: "600", marginBottom: "2px" }}>{item.title}</div>
-                        <div style={{ fontSize: "12px", color: "var(--color-muted)" }}>{item.desc}</div>
+                        <div style={{ fontSize: "14px", fontWeight: "600", marginBottom: "2px" }}>{item.title}</div>
+                        <div style={{ fontSize: "13px", color: "var(--color-muted)", fontFamily: "monospace" }}>{item.desc}</div>
                       </div>
                     </div>
                   ))}
                 </div>
-                <div style={{ marginTop: "20px", padding: "14px", background: "var(--color-bg)", borderRadius: "6px", fontSize: "13px", fontFamily: "monospace" }}>
-                  <div style={{ color: "var(--color-muted)", marginBottom: "6px" }}>Local workflow:</div>
-                  <div>git checkout -b feature/my-change</div>
-                  <div># ... make changes ...</div>
-                  <div>git push origin feature/my-change</div>
-                  <div style={{ color: "var(--color-brand)" }}># Then open PR at github.com/Verstige/open-local</div>
+              </div>
+
+              <div className="card" style={{ padding: "24px" }}>
+                <h2 style={{ fontSize: "15px", fontWeight: "700", marginBottom: "12px" }}>Tracked Repositories</h2>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  {[
+                    { name: "mscartiles-lab/open-local", label: "Main Repo", desc: "Chrissy's canonical repo — where PRs merge", color: "#22c55e" },
+                    { name: "Verstige/open-local", label: "Your Fork", desc: "Your copy — all your work goes here first", color: "#5c7cfa" },
+                  ].map((r) => (
+                    <div key={r.name} style={{ padding: "16px", background: "var(--color-bg)", borderRadius: "8px", borderLeft: `3px solid ${r.color}` }}>
+                      <div style={{ fontSize: "11px", fontWeight: "700", color: r.color, textTransform: "uppercase", marginBottom: "4px" }}>{r.label}</div>
+                      <div style={{ fontSize: "13px", fontWeight: "600", marginBottom: "4px" }}>{r.name}</div>
+                      <div style={{ fontSize: "12px", color: "var(--color-muted)" }}>{r.desc}</div>
+                      <a href={`https://github.com/${r.name}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: "12px", color: "var(--color-brand)", display: "inline-block", marginTop: "6px" }}>
+                        Open ↗
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="card" style={{ padding: "24px" }}>
+                <h2 style={{ fontSize: "15px", fontWeight: "700", marginBottom: "12px" }}>Connecting GitHub Token</h2>
+                <div style={{ fontSize: "13px", color: "var(--color-muted)", lineHeight: "1.7" }}>
+                  <p style={{ marginBottom: "12px" }}>To see live commits and issues, add your GitHub Personal Access Token to Railway:</p>
+                  <ol style={{ paddingLeft: "20px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                    <li>Go to <strong style={{ color: "var(--color-text)" }}>github.com → Settings → Developer Settings → Personal Access Tokens</strong></li>
+                    <li>Generate new token (classic) — check <code>repo</code> scope</li>
+                    <li>Copy the token</li>
+                    <li>In Railway, go to your Ops Board project → Variables → add <code>GITHUB_TOKEN=ghp_...</code></li>
+                    <li>Redeploy — commits will start flowing in automatically</li>
+                  </ol>
                 </div>
               </div>
             </div>

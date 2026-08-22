@@ -18,10 +18,12 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  tasks        Task[]
-  notes        Note[]
-  events       CalendarEvent[]
-  credentials  Credential[]
+  tasks           Task[]
+  notes           Note[]
+  events          CalendarEvent[]
+  credentials     Credential[]
+  investorUpdates InvestorUpdate[]
+  sprints         SprintMember[]
 
   @@map("users")
 }
@@ -29,19 +31,146 @@ model User {
 // ─── Projects ───────────────────────────────────────────────────────────────────
 
 model Project {
-  id          String   @id @default(cuid())
-  name       String
+  id          String    @id @default(cuid())
+  name        String
   description String?
-  repoUrl    String?  // GitHub repo URL
-  color      String   @default("#5c7cfa") // for UI tagging
+  repoUrl     String?
+  repoOwner   String?   // e.g. "mscartiles-lab" or "Verstige"
+  repoName    String?   // e.g. "open-local"
+  color       String    @default("#5c7cfa")
+  isMonitored Boolean   @default(false) // GitHub commits tracked
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  tasks        Task[]
+  notes        Note[]
+  events       CalendarEvent[]
+  sprints      Sprint[]
+  milestones   Milestone[]
+  artifacts    Artifact[]
+  investorUpdates InvestorUpdate[]
+
+  @@map("projects")
+}
+
+// ─── Artifacts (Open Local monorepo packages) ──────────────────────────────────
+
+model Artifact {
+  id          String   @id @default(cuid())
+  name       String   // e.g. "api-server", "open-local-mobile"
+  description String?
+  type       String   // API | MOBILE | WEB | DB | LIB | SCRIPT
+  repoPath   String?  // e.g. "artifacts/open-local"
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id])
+
+  commits  GitHubCommit[]
+  tasks    Task[]
+
+  @@map("artifacts")
+}
+
+// ─── Sprints ───────────────────────────────────────────────────────────────────
+
+model Sprint {
+  id          String    @id @default(cuid())
+  name       String    // e.g. "Sprint 1 — Aug 25–Sep 5"
+  goal       String?   // Sprint goal
+  startDate  DateTime
+  endDate    DateTime
+  status     String    @default("PLANNING") // PLANNING | ACTIVE | COMPLETED
+  createdAt  DateTime  @default(now())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id])
+
+  members  SprintMember[]
+  tasks    Task[]
+
+  @@map("sprints")
+}
+
+model SprintMember {
+  id       String @id @default(cuid())
+
+  userId   String
+  user     User   @relation(fields: [userId], references: [id])
+
+  sprintId String
+  sprint   Sprint @relation(fields: [sprintId], references: [id])
+
+  @@unique([userId, sprintId])
+  @@map("sprint_members")
+}
+
+// ─── Milestones (90-day evaluation equity gates) ───────────────────────────────
+
+model Milestone {
+  id          String    @id @default(cuid())
+  title      String    // e.g. "Technical Leadership"
+  description String?
+  category    String    // TECHNICAL | OPERATIONAL | EXECUTIVE | GROWTH
+  status     String    @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | COMPLETED | AT_RISK
+  targetDate DateTime?
+  completedAt DateTime?
+  notes      String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id])
+
+  tasks Task[]
+
+  @@map("milestones")
+}
+
+// ─── Investor Updates ───────────────────────────────────────────────────────────
+
+model InvestorUpdate {
+  id          String   @id @default(cuid())
+  title      String
+  content    String   // markdown content
+  type       String   @default("PROGRESS") // PROGRESS | METRIC | DEMO | MILESTONE | PITCH
+  metrics    Json?    // { vendorsOnboarded: 12, mrr: 2400, ... }
+  sentAt     DateTime?
+  isPublished Boolean  @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  tasks      Task[]
-  notes      Note[]
-  events    CalendarEvent[]
+  authorId String
+  author   User    @relation(fields: [authorId], references: [id])
 
-  @@map("projects")
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
+
+  @@map("investor_updates")
+}
+
+// ─── GitHub Commits (cached, linked to artifacts/tasks) ────────────────────────
+
+model GitHubCommit {
+  id          String   @id @default(cuid())
+  sha         String   @unique
+  message     String
+  authorName  String
+  authorEmail String?
+  authorLogin String? // GitHub username
+  avatarUrl   String?
+  repoUrl     String
+  htmlUrl     String
+  committedAt DateTime
+  createdAt   DateTime @default(now())
+
+  artifactId String?
+  artifact   Artifact? @relation(fields: [artifactId], references: [id])
+
+  linkedTasks String[] // task IDs mentioned in commit message e.g. ["task_abc","task_xyz"]
+
+  @@map("github_commits")
 }
 
 // ─── Tasks ─────────────────────────────────────────────────────────────────────
@@ -53,6 +182,9 @@ model Task {
   status     String    @default("TODO") // TODO | IN_PROGRESS | DONE | BLOCKED
   priority   String    @default("MEDIUM") // LOW | MEDIUM | HIGH | URGENT
   dueDate    DateTime?
+  storyPoints Int?     // for sprint velocity tracking
+  githubIssueNumber Int?  // linked GitHub issue
+  githubIssueUrl String?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
@@ -62,27 +194,37 @@ model Task {
   projectId  String
   project    Project   @relation(fields: [projectId], references: [id])
 
+  sprintId   String?
+  sprint     Sprint?   @relation(fields: [sprintId], references: [id])
+
+  milestoneId String?
+  milestone   Milestone? @relation(fields: [milestoneId], references: [id])
+
+  artifactId String?
+  artifact   Artifact? @relation(fields: [artifactId], references: [id])
+
   @@map("tasks")
 }
 
 // ─── Calendar ──────────────────────────────────────────────────────────────────
 
 model CalendarEvent {
-  id        String   @id @default(cuid())
-  title    String
+  id          String   @id @default(cuid())
+  title      String
   description String?
-  start    DateTime
-  end      DateTime?
-  allDay   Boolean  @default(false)
-  location String?
-  meetingUrl String?
-  createdAt DateTime @default(now())
+  start      DateTime
+  end        DateTime?
+  allDay     Boolean  @default(false)
+  location   String?
+  meetingUrl  String?
+  eventType  String   @default("MEETING") // MEETING | DEADLINE | REVIEW | DEMO | PITCH
+  createdAt  DateTime @default(now())
 
-  projectId String?
-  project   Project? @relation(fields: [projectId], references: [id])
+  projectId  String?
+  project    Project?  @relation(fields: [projectId], references: [id])
 
   organizerId String
-  organizer  User    @relation(fields: [organizerId], references: [id])
+  organizer   User     @relation(fields: [organizerId], references: [id])
 
   @@map("calendar_events")
 }
@@ -93,7 +235,8 @@ model Note {
   id        String   @id @default(cuid())
   title    String
   content  String?
-  isShared Boolean  @default(false) // shared with project or private
+  isShared Boolean  @default(false)
+  tags     String[] // e.g. ["architecture","interview","legal"]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -110,20 +253,20 @@ model Note {
 
 model Credential {
   id        String   @id @default(cuid())
-  name     String   // e.g. "Railway", "Open Local Staging DB"
+  name     String
   category String   @default("OTHER") // CLOUD | DATABASE | API | OTHER
   url      String?
   username String?
-  password String?  // encrypted in production; plain for now in dev
+  password String?
   notes    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  ownerId  String
-  owner    User    @relation(fields: [ownerId], references: [id])
+  ownerId String
+  owner   User    @relation(fields: [ownerId], references: [id])
 
   projectId String?
-  project   Project? @relation(fields: [projectId], references: [id])
+  project  Project? @relation(fields: [projectId], references: [id])
 
   @@map("credentials")
 }

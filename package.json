@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "prisma generate && next build",
-    "start": "next start",
+    "start": "prisma migrate deploy && next start",
+    "postinstall": "prisma generate",
     "lint": "next lint",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
@@ -16,6 +17,7 @@
     "@auth/core": "^0.34.2",
     "@octokit/rest": "^21.0.2",
     "@prisma/adapter-pg": "^6.3.0",
+    "@prisma/client": "^6.19.3",
     "bcryptjs": "^2.4.3",
     "date-fns": "^3.6.0",
     "effect": "^3.22.1",

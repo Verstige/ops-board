@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
-import { PrismaClient } from "../../../app/generated/prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || "";
 const HEADERS = {

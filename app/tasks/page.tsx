@@ -110,6 +110,7 @@ export default function TasksPage() {
           { href: "/calendar", label: "Calendar", icon: "◷" },
           { href: "/notes", label: "Notes", icon: "▤" },
           { href: "/credentials", label: "Credentials", icon: "🔑" },
+          { href: "/github", label: "GitHub", icon: "⌥" },
         ].map((n) => (
           <a key={n.href} href={n.href} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "6px", color: n.href === "/tasks" ? "var(--color-text)" : "var(--color-muted)", fontSize: "14px", fontWeight: n.href === "/tasks" ? "600" : "400", background: n.href === "/tasks" ? "rgba(92,124,250,0.1)" : "transparent" }}>
             <span>{n.icon}</span> {n.label}

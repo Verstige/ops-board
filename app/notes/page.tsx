@@ -41,7 +41,8 @@ export default function NotesPage() {
     <div style={{ display: "flex", height: "100vh" }}>
       <aside style={{ width: "220px", background: "var(--color-surface)", borderRight: "1px solid var(--color-border)", padding: "20px 12px" }}>
         <div style={{ fontSize: "16px", fontWeight: "700", padding: "8px 12px", marginBottom: "16px" }}>Ops Board</div>
-        {[{ href: "/dashboard", label: "Dashboard", icon: "⌂" }, { href: "/tasks", label: "Tasks", icon: "◎" }, { href: "/calendar", label: "Calendar", icon: "◷" }, { href: "/notes", label: "Notes", icon: "▤" }, { href: "/credentials", label: "Credentials", icon: "🔑" }].map((n) => (
+        {[{ href: "/dashboard", label: "Dashboard", icon: "⌂" }, { href: "/tasks", label: "Tasks", icon: "◎" }, { href: "/calendar", label: "Calendar", icon: "◷" }, { href: "/notes", label: "Notes", icon: "▤" }, { href: "/credentials", label: "Credentials", icon: "🔑" },
+          { href: "/github", label: "GitHub", icon: "⌥" }].map((n) => (
           <a key={n.href} href={n.href} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "9px 12px", borderRadius: "6px", color: n.href === "/notes" ? "var(--color-text)" : "var(--color-muted)", fontSize: "14px", fontWeight: n.href === "/notes" ? "600" : "400", background: n.href === "/notes" ? "rgba(92,124,250,0.1)" : "transparent" }}><span>{n.icon}</span> {n.label}</a>
         ))}
       </aside>

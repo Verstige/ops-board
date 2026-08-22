@@ -1,2 +1,9 @@
+[build]
+  builder = "NIXPACKS"
+  nixpacksVersion = "latest"
+
+[nixpacks]
+  node_version = "22"
+
 [deploy]
   healthCheckPath = "/"

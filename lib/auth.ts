@@ -1,9 +1,10 @@
+import { getServerSession } from "next-auth";
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
-import { PrismaClient } from "../app/generated/prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
 const adapter = new PrismaPg(pool);
@@ -60,3 +61,5 @@ export const authOptions: NextAuthOptions = {
     error: "/login",
   },
 };
+
+export const auth = () => getServerSession(authOptions as any);

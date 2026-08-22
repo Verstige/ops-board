@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { auth } from "@/auth";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import { PrismaClient } from "@prisma/client";
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
       tasks: {
         include: {
           assignee: { select: { id: true, name: true } },
-          artifact: { select: { id: true, name: true, color: true } },
+          artifact: { select: { id: true, name: true } },
         },
       },
     },

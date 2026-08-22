@@ -54,7 +54,6 @@ async function main() {
       repoOwner: "mscartiles-lab",
       repoName: "open-local",
       color: "#22c55e",
-      isMonitored: true,
     },
   });
 
@@ -69,7 +68,6 @@ async function main() {
       repoOwner: "Verstige",
       repoName: "ops-board",
       color: "#5c7cfa",
-      isMonitored: true,
     },
   });
 
@@ -534,8 +532,6 @@ async function main() {
       repoOwner: "Verstige",
       repoName: "ops-board",
       color: "#5c7cfa",
-      isMonitored: true,
-      projectId: openLocal.id,
     },
   });
 

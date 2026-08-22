@@ -1,14 +1,2 @@
-[build]
-  builder = "NIXPACKS"
-  buildCommand = "npx prisma generate && npm run build"
-
 [deploy]
-  startCommand = "npm start"
   healthCheckPath = "/"
-
-[environments.production]
-  buildCommand = "npx prisma generate && npm run build"
-  startCommand = "npm start"
-
-[nixpacks]
-  node_version = "22"

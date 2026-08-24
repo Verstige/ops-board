@@ -115,6 +115,9 @@ async function getCRM(): Promise<CacheEntry> {
     source,
     data: { ...data, summary: summarize(data) },
   };
+  // Strip any _comment keys from the bundled fallback so they don't leak
+  // into the API response shape
+  if (cache.data._comment) delete cache.data._comment;
   return cache;
 }
 

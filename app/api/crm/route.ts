@@ -59,6 +59,18 @@ async function fetchLive(): Promise<{ data: any; error?: string }> {
 
     const data: any = {};
     for (const [key, value] of results) data[key] = value;
+
+    // Also fetch discovery stats (separate endpoint, used by the Marketplace Stats tab)
+    try {
+      const statsRes = await fetch(`${base}/api/stats`, {
+        headers: { Accept: "application/json" },
+        next: { revalidate: 0 },
+      });
+      data.stats = statsRes.ok ? await statsRes.json() : null;
+    } catch {
+      data.stats = null;
+    }
+
     return { data };
   } catch (e) {
     return { data: null, error: String(e) };
@@ -93,6 +105,9 @@ function summarize(data: any) {
   const openSupport = data.support?.filter((t: any) => t.status === "open").length ?? 0;
   const urgentSupport = data.support?.filter((t: any) => t.priority === "urgent").length ?? 0;
 
+  // Marketplace stats (from /api/stats when live; null in fallback)
+  const stats = data.stats ?? null;
+
   return {
     users: { total: totalUsers, admins: adminUsers, vendors: vendorUsers },
     establishments: { total: totalEstablishments, active: activeEstablishments, trial: trialEstablishments, pending: pendingEstablishments },
@@ -100,6 +115,7 @@ function summarize(data: any) {
     products: { total: totalProducts, inStock: inStockProducts, featured: featuredProducts },
     webhooks: { total: totalWebhooks, active: activeWebhooks, failed24h: failedDeliveries24h },
     support: { total: totalSupport, open: openSupport, urgent: urgentSupport },
+    marketplace: stats,
   };
 }
 

@@ -46,9 +46,17 @@
     { "id": 3, "label": "Zapier: CRM new lead",  "url": "https://hooks.zapier.com/hooks/catch/123/abc",      "events": ["vendor.created"],                            "active": false, "createdAt": "2026-07-10T00:00:00Z", "lastDeliveryAt": "2026-08-12T09:00:00Z", "lastDeliveryStatus": 410, "deliveriesLast24h": 0 }
   ],
   "support": [
-    { "id": "SUP-1A2B3C", "subject": "Can't upload product photos",   "email": "ava@sunshine-citrus.com",  "status": "open",        "priority": "high",   "createdAt": "2026-08-20T14:23:00Z", "updatedAt": "2026-08-22T10:00:00Z" },
-    { "id": "SUP-2D3E4F", "subject": "Stripe webhook failed",         "email": "admin@openlocal.com",      "status": "in_progress", "priority": "urgent", "createdAt": "2026-08-22T09:15:00Z", "updatedAt": "2026-08-24T22:01:00Z" },
-    { "id": "SUP-3G4H5I", "subject": "Trial expired, can't re-subscribe", "email": "dale@smokymtn.com",     "status": "resolved",   "priority": "medium", "createdAt": "2026-08-15T16:30:00Z", "updatedAt": "2026-08-19T11:00:00Z" },
-    { "id": "SUP-4J5K6L", "subject": "Mobile app: photo upload broken", "email": "kate@gardenstate.co",  "status": "open",        "priority": "medium", "createdAt": "2026-08-23T08:00:00Z", "updatedAt": "2026-08-23T08:00:00Z" }
-  ]
+    { "id": 101, "reference": "SUP-1A2B3C", "userId": 3,  "email": "ava@sunshine-citrus.com",  "username": "avag",   "role": "vendor", "subject": "Can't upload product photos",         "body": "Photos won't upload from iPhone Safari", "status": "open",        "flaggedStale": false, "createdAt": "2026-08-20T14:23:00Z", "resolvedAt": null,                       "updatedAt": "2026-08-22T10:00:00Z" },
+    { "id": 102, "reference": "SUP-2D3E4F", "userId": 1,  "email": "admin@openlocal.com",      "username": "julylan","role": "admin", "subject": "Stripe webhook failed",               "body": "Getting 500s from /api/stripe/webhook since last deploy", "status": "in_progress", "flaggedStale": false, "createdAt": "2026-08-22T09:15:00Z", "resolvedAt": null,                       "updatedAt": "2026-08-24T22:01:00Z" },
+    { "id": 103, "reference": "SUP-3G4H5I", "userId": 8,  "email": "dale@smokymtn.com",         "username": "dale",   "role": "vendor", "subject": "Trial expired, can't re-subscribe",   "body": "Clicked resubscribe but nothing happened",  "status": "resolved",   "flaggedStale": false, "createdAt": "2026-08-15T16:30:00Z", "resolvedAt": "2026-08-19T11:00:00Z",        "updatedAt": "2026-08-19T11:00:00Z" },
+    { "id": 104, "reference": "SUP-4J5K6L", "userId": 7,  "email": "kate@gardenstate.co",       "username": "kate",   "role": "vendor", "subject": "Mobile app: photo upload broken",     "body": "Same issue, mobile app",                  "status": "open",        "flaggedStale": false, "createdAt": "2026-08-23T08:00:00Z", "resolvedAt": null,                       "updatedAt": "2026-08-23T08:00:00Z" }
+  ],
+  "stats": {
+    "vendorCount": 8,
+    "productCount": 8,
+    "locationCount": 8,
+    "categoryCount": 6,
+    "inStockCount": 7,
+    "featuredVendorCount": 6
+  }
 }

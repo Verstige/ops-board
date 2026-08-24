@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import { IconPlus, IconClose } from "@/components/Icons";
 
 export default function NotesPage() {
+  const { data: session } = useSession();
+  const currentUserId = session?.user?.id;
   const [notes, setNotes] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [showNew, setShowNew] = useState(false);
@@ -29,6 +32,24 @@ export default function NotesPage() {
     setLoading(false); setShowNew(false);
     setForm({ title: "", content: "", isShared: false, projectId: "" });
     load();
+  }
+
+  async function deleteNote(id: string) {
+    if (!confirm("Delete this note? This cannot be undone.")) return;
+    // Optimistic update — drop from list immediately
+    const previous = notes;
+    const previousSelected = selected;
+    setNotes((prev) => prev.filter((n) => n.id !== id));
+    if (selected?.id === id) setSelected(null);
+    try {
+      const res = await fetch(`/api/notes/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
+    } catch (err) {
+      // Roll back on failure
+      setNotes(previous);
+      setSelected(previousSelected);
+      alert("Failed to delete note. Please try again.");
+    }
   }
 
   return (
@@ -57,27 +78,53 @@ export default function NotesPage() {
               </select>
             </div>
             <div style={{ flex: 1, overflowY: "auto" }}>
-              {notes.map((note) => (
-                <button
-                  key={note.id}
-                  onClick={() => setSelected(note)}
-                  style={{
-                    display: "block", width: "100%", textAlign: "left",
-                    padding: "14px 16px",
-                    borderBottom: "1px solid var(--line)",
-                    background: selected?.id === note.id ? "color-mix(in srgb, var(--brand-500) 10%, transparent)" : "transparent",
-                    border: "none",
-                    borderLeft: selected?.id === note.id ? "3px solid var(--brand-500)" : "3px solid transparent",
-                    cursor: "pointer",
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{note.title}</div>
-                  <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                    {note.author.name} · {note.isShared ? "Shared" : "Private"}
+              {notes.map((note) => {
+                const canDelete = currentUserId && note.author?.id === currentUserId;
+                return (
+                  <div
+                    key={note.id}
+                    onClick={() => setSelected(note)}
+                    style={{
+                      display: "flex", alignItems: "center",
+                      padding: "0 8px 0 0",
+                      borderBottom: "1px solid var(--line)",
+                      background: selected?.id === note.id ? "color-mix(in srgb, var(--brand-500) 10%, transparent)" : "transparent",
+                      borderLeft: selected?.id === note.id ? "3px solid var(--brand-500)" : "3px solid transparent",
+                      cursor: "pointer",
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    <button
+                      onClick={() => setSelected(note)}
+                      style={{
+                        flex: 1, textAlign: "left",
+                        padding: "14px 12px",
+                        background: "transparent",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "var(--text-primary)",
+                      }}
+                    >
+                      <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{note.title}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                        {note.author.name} · {note.isShared ? "Shared" : "Private"}
+                      </div>
+                    </button>
+                    {canDelete && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); deleteNote(note.id); }}
+                        aria-label="Delete note"
+                        title="Delete"
+                        className="btn-icon"
+                        style={{ width: 28, height: 28, borderRadius: 8, marginRight: 6, color: "var(--status-blocked-fg)", flexShrink: 0 }}
+                      >
+                        <IconClose size={12} />
+                      </button>
+                    )}
                   </div>
-                </button>
-              ))}
+                );
+              })}
               {notes.length === 0 && (
                 <div style={{ padding: 24, textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>No notes yet</div>
               )}
@@ -88,13 +135,25 @@ export default function NotesPage() {
           <div style={{ display: "flex", flexDirection: "column" }}>
             {selected ? (
               <>
-                <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--line)" }}>
-                  <h2 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.02em", marginBottom: 6 }}>
-                    {selected.title}
-                  </h2>
-                  <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                    {selected.author.name} · {selected.project?.name || "No project"} · {selected.isShared ? "Shared" : "Private"}
+                <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <h2 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.02em", marginBottom: 6 }}>
+                      {selected.title}
+                    </h2>
+                    <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                      {selected.author.name} · {selected.project?.name || "No project"} · {selected.isShared ? "Shared" : "Private"}
+                    </div>
                   </div>
+                  {currentUserId && selected.author?.id === currentUserId && (
+                    <button
+                      type="button"
+                      onClick={() => deleteNote(selected.id)}
+                      className="btn-ghost"
+                      style={{ fontSize: 12, color: "var(--status-blocked-fg)", flexShrink: 0 }}
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
                 <div style={{ flex: 1, padding: 24, overflowY: "auto" }}>
                   <pre style={{ fontSize: 14, lineHeight: 1.7, whiteSpace: "pre-wrap", fontFamily: "inherit", color: "var(--text-primary)", margin: 0 }}>

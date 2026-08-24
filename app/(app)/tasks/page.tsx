@@ -20,6 +20,8 @@ type Task = {
   status: string;
   priority: string;
   dueDate: string | null;
+  githubIssueNumber: number | null;
+  githubIssueUrl: string | null;
   assignee: { id: string; name: string };
   project: { id: string; name: string; color: string };
 };
@@ -42,6 +44,8 @@ export default function TasksPage() {
   const [newAssignee, setNewAssignee] = useState("");
   const [newPriority, setNewPriority] = useState("MEDIUM");
   const [newDue, setNewDue] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [createWarning, setCreateWarning] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const qs = filterProject ? `?projectId=${filterProject}` : "";
@@ -59,8 +63,9 @@ export default function TasksPage() {
 
   async function createTask(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
-    await fetch("/api/tasks", {
+    setCreating(true);
+    setCreateWarning(null);
+    const res = await fetch("/api/tasks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -69,7 +74,9 @@ export default function TasksPage() {
         priority: newPriority, dueDate: newDue || null,
       }),
     });
-    setLoading(false);
+    const data = await res.json().catch(() => null);
+    setCreating(false);
+    if (data?._warning) setCreateWarning(data._warning);
     setShowNew(false);
     setNewTitle(""); setNewDesc(""); setNewProject(""); setNewAssignee(""); setNewDue("");
     load();
@@ -171,6 +178,25 @@ export default function TasksPage() {
                       <span style={{ fontSize: 10, color: task.project.color, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>
                         {task.project.name}
                       </span>
+                      {task.githubIssueNumber && task.githubIssueUrl && (
+                        <a
+                          href={task.githubIssueUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          title="Open linked GitHub issue"
+                          style={{
+                            fontSize: 10, fontWeight: 700, fontFamily: "var(--font-mono)",
+                            background: "color-mix(in srgb, var(--brand-500) 14%, transparent)",
+                            color: "var(--brand-600)",
+                            padding: "2px 8px", borderRadius: 999,
+                            textDecoration: "none",
+                            border: "1px solid color-mix(in srgb, var(--brand-500) 30%, transparent)",
+                          }}
+                        >
+                          ↗ #{task.githubIssueNumber}
+                        </a>
+                      )}
                     </div>
                     <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", lineHeight: 1.4, marginBottom: 6 }}>
                       {task.title}
@@ -242,6 +268,16 @@ export default function TasksPage() {
               </button>
             </div>
             <form onSubmit={createTask} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {createWarning && (
+                <div style={{
+                  padding: "10px 14px", borderRadius: 10,
+                  background: "color-mix(in srgb, #f97316 14%, transparent)",
+                  border: "1px solid color-mix(in srgb, #f97316 30%, transparent)",
+                  color: "#f97316", fontSize: 12, fontWeight: 600,
+                }}>
+                  ⚠ {createWarning}
+                </div>
+              )}
               <div>
                 <label style={{ fontSize: 11, fontWeight: 700, marginBottom: 6, display: "block", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Title *</label>
                 <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Task title" required autoFocus />
@@ -257,6 +293,11 @@ export default function TasksPage() {
                     <option value="">Select…</option>
                     {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
+                  {newProject === "open-local-issues" && (
+                    <div style={{ fontSize: 11, color: "#f97316", marginTop: 6, lineHeight: 1.4 }}>
+                      ⓘ This will also open a GitHub issue on mscartiles-lab/open-local using GITHUB_TOKEN.
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label style={{ fontSize: 11, fontWeight: 700, marginBottom: 6, display: "block", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Assignee *</label>
@@ -278,8 +319,8 @@ export default function TasksPage() {
                   <input type="date" value={newDue} onChange={(e) => setNewDue(e.target.value)} />
                 </div>
               </div>
-              <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: 8, padding: "12px" }}>
-                {loading ? "Creating…" : "Create task"}
+              <button type="submit" className="btn-primary" disabled={creating} style={{ marginTop: 8, padding: "12px" }}>
+                {creating ? (newProject === "open-local-issues" ? "Creating task + GitHub issue…" : "Creating…") : (newProject === "open-local-issues" ? "Create task + open issue →" : "Create task")}
               </button>
             </form>
           </div>

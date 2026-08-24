@@ -30,6 +30,17 @@ type Issue = {
   user: { login: string; avatar_url: string };
 };
 
+type IssueTask = {
+  id: string;
+  title: string;
+  status: string;
+  priority: string;
+  githubIssueNumber: number | null;
+  githubIssueUrl: string | null;
+  createdAt: string;
+  assignee: { id: string; name: string };
+};
+
 function timeAgo(date: string) {
   const secs = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
   if (secs < 60) return `${secs}s ago`;
@@ -53,18 +64,21 @@ export default function GitHubPage() {
   const [tab, setTab] = useState<"commits" | "issues" | "workflow">("commits");
   const [commits, setCommits] = useState<Commit[]>([]);
   const [issues, setIssues] = useState<Issue[]>([]);
+  const [issueTasks, setIssueTasks] = useState<IssueTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [importingIssue, setImportingIssue] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [cData, iData] = await Promise.all([
+    const [cData, iData, tData] = await Promise.all([
       fetch("/api/github?type=commits").then((r) => r.json()),
       fetch("/api/github?type=issues").then((r) => r.json()),
+      fetch("/api/github?type=issue-tasks").then((r) => r.json()).catch(() => ({ tasks: [] })),
     ]);
     setCommits(cData.commits || []);
     setIssues(iData.issues || []);
+    setIssueTasks(tData.tasks || []);
     setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -227,6 +241,74 @@ export default function GitHubPage() {
         </div>
       ) : tab === "issues" ? (
         <div>
+          {/* Workflow callout */}
+          <div className="card" style={{ marginBottom: 16, padding: 18, borderLeft: "3px solid #f97316" }}>
+            <div style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+              <strong style={{ color: "var(--text-primary)" }}>New:</strong> when creating a task on the Board, pick project{" "}
+              <span className="badge badge-URGENT" style={{ background: "color-mix(in srgb, #f97316 14%, transparent)", color: "#f97316" }}>Issues (GitHub)</span>{" "}
+              to auto-open a GitHub issue on <strong style={{ color: "var(--text-primary)" }}>mscartiles-lab/open-local</strong>. The task
+              keeps the issue number, the GitHub issue links back to the task description. Tasks filed this way appear below;
+              sync status is shown per row.
+            </div>
+          </div>
+
+          {/* Tasks filed from the board (board → GitHub bridge) */}
+          {issueTasks.length > 0 && (
+            <div style={{ marginBottom: 24 }}>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.01em", marginBottom: 12 }}>
+                Filed from Board <span style={{ color: "var(--text-muted)", fontWeight: 500, fontSize: 12 }}>({issueTasks.length})</span>
+              </h2>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {issueTasks.map((t) => {
+                  const synced = t.githubIssueNumber && t.githubIssueUrl;
+                  return (
+                    <div key={t.id} className="card glass-fade" style={{ padding: 14, borderLeft: `3px solid ${synced ? "#22c55e" : "#f97316"}` }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                        {synced ? (
+                          <a
+                            href={t.githubIssueUrl!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ fontSize: 12, color: "var(--brand-600)", fontFamily: "var(--font-mono)", fontWeight: 700 }}
+                          >
+                            #{t.githubIssueNumber}
+                          </a>
+                        ) : (
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
+                            background: "color-mix(in srgb, #f97316 14%, transparent)",
+                            color: "#f97316",
+                          }}>
+                            ⚠ NOT SYNCED
+                          </span>
+                        )}
+                        <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", flex: 1, minWidth: 0 }}>
+                          {t.title}
+                        </span>
+                        <span className={`badge badge-${t.priority}`}>{t.priority}</span>
+                        <span className={`status-dot dot-${t.status}`} />
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                        <span>→ {t.assignee?.name || "Unassigned"}</span>
+                        <span>·</span>
+                        <span>{new Date(t.createdAt).toLocaleDateString()}</span>
+                        {synced && (
+                          <>
+                            <span>·</span>
+                            <a href={`/tasks?focus=${t.id}`} style={{ color: "var(--brand-600)", fontWeight: 600 }}>
+                              Open task →
+                            </a>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Raw GH issues (existing flow) */}
           <div className="card" style={{ marginBottom: 20, padding: 18 }}>
             <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
               Open issues from <strong style={{ color: "var(--text-primary)" }}>mscartiles-lab/open-local</strong>.

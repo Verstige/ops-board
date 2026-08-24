@@ -71,6 +71,23 @@ async function main() {
     },
   });
 
+  // Special "Issues" project — selecting this on task creation auto-creates
+  // a GitHub issue on mscartiles-lab/open-local via GITHUB_TOKEN.
+  const openLocalIssues = await prisma.project.upsert({
+    where: { id: "open-local-issues" },
+    update: {},
+    create: {
+      id: "open-local-issues",
+      name: "Issues (GitHub)",
+      description:
+        "Selecting this project when creating a task auto-opens a GitHub issue on mscartiles-lab/open-local. Status syncs back via the Issues tab.",
+      repoUrl: "https://github.com/mscartiles-lab/open-local",
+      repoOwner: "mscartiles-lab",
+      repoName: "open-local",
+      color: "#f97316",
+    },
+  });
+
   console.log("✅ Projects created");
 
   // ─── Artifacts (monorepo packages) ─────────────────────────────────────────

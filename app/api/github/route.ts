@@ -105,6 +105,21 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ issues });
   }
 
+  // Tasks filed under the special Issues project (board → GitHub bridge).
+  // Returns the ops-board-side record for each task so the Issues tab can show
+  // which board tasks already opened GitHub issues and which failed.
+  if (type === "issue-tasks") {
+    const tasks = await prisma.task.findMany({
+      where: { projectId: "open-local-issues" },
+      include: {
+        assignee: { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+    return NextResponse.json({ tasks });
+  }
+
   if (type === "commits") {
     if (sync) {
       const results = await syncCommits();

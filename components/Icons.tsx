@@ -166,6 +166,15 @@ export function IconMap({ size, className, strokeWidth }: IconProps) {
   );
 }
 
+export function IconCrm({ size, className, strokeWidth }: IconProps) {
+  return (
+    <svg {...base(size, strokeWidth)} className={className}>
+      <path d="M3 7h18M5 7v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V7M9 11h6M9 15h4" />
+      <path d="M3 7l3-3h12l3 3" />
+    </svg>
+  );
+}
+
 export function IconBrandMark({ size = 28, className }: { size?: number; className?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none" className={className}>

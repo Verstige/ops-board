@@ -1,0 +1,54 @@
+{
+  "_comment": "Fallback snapshot used when OPEN_LOCAL_API_URL is unset or upstream fails. Mirrors the open-local admin's 6 entities (users, establishments, vendors, products, webhooks, support) with realistic FL/TX/GA/TN/NJ/SC/NC data so the CRM UI never breaks. Replace with live data once OPEN_LOCAL_API_URL is set in Railway.",
+  "users": [
+    { "id": 1, "email": "julylan@openlocal.com",  "username": "julylan",  "role": "admin",  "state": "FL", "zip": "33101", "tier": "founder",   "stripeSubscriptionId": "sub_1OLxyz", "createdAt": "2026-05-15T10:00:00Z" },
+    { "id": 2, "email": "chrissy@openlocal.com", "username": "chrissy",  "role": "admin",  "state": "FL", "zip": "33101", "tier": "founder",   "stripeSubscriptionId": null,         "createdAt": "2026-05-15T10:00:00Z" },
+    { "id": 3, "email": "ava@sunshine-citrus.com","username": "avag",   "role": "vendor", "state": "FL", "zip": "33030", "tier": "pro",       "stripeSubscriptionId": "sub_1OLava", "createdAt": "2026-06-02T14:23:00Z" },
+    { "id": 4, "email": "raj@tampa-bay-honey.com","username": "rajb",   "role": "vendor", "state": "FL", "zip": "33602", "tier": "starter",   "stripeSubscriptionId": "sub_1OLraj", "createdAt": "2026-06-10T09:15:00Z" },
+    { "id": 5, "email": "maria@hillcountrybeef.com","username": "mariad","role": "vendor", "state": "TX", "zip": "78701", "tier": "pro",       "stripeSubscriptionId": "sub_1OLmaria","createdAt": "2026-06-22T11:30:00Z" },
+    { "id": 6, "email": "shopper1@gmail.com",     "username": "shopper1","role": "shopper","state": "FL", "zip": "33139", "tier": "free",      "stripeSubscriptionId": null,         "createdAt": "2026-07-05T16:42:00Z" },
+    { "id": 7, "email": "shopper2@gmail.com",     "username": "shopper2","role": "shopper","state": "GA", "zip": "30303", "tier": "free",      "stripeSubscriptionId": null,         "createdAt": "2026-07-09T12:00:00Z" },
+    { "id": 8, "email": "shopper3@gmail.com",     "username": "shopper3","role": "shopper","state": "NJ", "zip": "08540", "tier": "free",      "stripeSubscriptionId": null,         "createdAt": "2026-07-14T18:21:00Z" }
+  ],
+  "establishments": [
+    { "id": 1, "name": "Sunshine Citrus Co-op",    "type": "Farm",            "city": "Homestead",   "state": "FL", "contactEmail": "ava@sunshine-citrus.com", "status": "active",   "tier": "pro",       "isTrial": false, "stripeSubscriptionId": "sub_1OLava",  "website": "https://sunshine-citrus.com",        "createdAt": "2026-06-02T14:23:00Z" },
+    { "id": 2, "name": "Tampa Bay Honey Co.",      "type": "Apiary",          "city": "Tampa",       "state": "FL", "contactEmail": "raj@tampa-bay-honey.com", "status": "active",   "tier": "starter",   "isTrial": false, "stripeSubscriptionId": "sub_1OLraj",  "website": "https://tampa-bay-honey.com",          "createdAt": "2026-06-10T09:15:00Z" },
+    { "id": 3, "name": "Hill Country Beef",        "type": "Ranch",           "city": "Austin",      "state": "TX", "contactEmail": "maria@hillcountrybeef.com","status": "active",  "tier": "pro",      "isTrial": false, "stripeSubscriptionId": "sub_1OLmaria","website": "https://hillcountrybeef.com",          "createdAt": "2026-06-22T11:30:00Z" },
+    { "id": 4, "name": "Peach State Preserves",    "type": "Specialty Foods","city": "Macon",       "state": "GA", "contactEmail": "sam@peachstate.co",       "status": "pending",  "tier": "starter",   "isTrial": true,  "stripeSubscriptionId": null,         "website": null,                              "createdAt": "2026-08-15T10:00:00Z" },
+    { "id": 5, "name": "Blue Ridge Berries",       "type": "Farm",            "city": "Asheville",   "state": "NC", "contactEmail": "amy@blueridgeberries.com","status": "active",   "tier": "pro",       "isTrial": false, "stripeSubscriptionId": "sub_1OLamy",  "website": "https://blueridgeberries.com",       "createdAt": "2026-07-01T13:00:00Z" },
+    { "id": 6, "name": "Smoky Mountain Honey",     "type": "Apiary",          "city": "Knoxville",   "state": "TN", "contactEmail": "dale@smokymtn.com",      "status": "rejected", "tier": "starter",   "isTrial": false, "stripeSubscriptionId": null,         "website": null,                              "createdAt": "2026-08-20T16:00:00Z" },
+    { "id": 7, "name": "Garden State Greens",      "type": "Farm",            "city": "Princeton",   "state": "NJ", "contactEmail": "kate@gardenstate.co",    "status": "active",   "tier": "pro",       "isTrial": false, "stripeSubscriptionId": "sub_1OLkate", "website": "https://gardenstategreens.com",       "createdAt": "2026-07-12T08:30:00Z" },
+    { "id": 8, "name": "Lowcountry Oysters",       "type": "Fishery",         "city": "Charleston",  "state": "SC", "contactEmail": "tom@lowcountry.co",      "status": "pending",  "tier": "pro",       "isTrial": true,  "stripeSubscriptionId": null,         "website": "https://lowcountryoysters.com",       "createdAt": "2026-08-22T12:45:00Z" }
+  ],
+  "vendors": [
+    { "id": 1, "name": "Sunshine Citrus Co-op", "location": "Homestead, FL", "region": "FL", "category": "Produce",   "featured": true,  "slug": "sunshine-citrus", "tagline": "Citrus fresh from the grove" },
+    { "id": 2, "name": "Tampa Bay Honey Co.",   "location": "Tampa, FL",    "region": "FL", "category": "Specialty", "featured": true,  "slug": "tampa-bay-honey", "tagline": "Raw, unfiltered Florida honey" },
+    { "id": 3, "name": "Hill Country Beef",     "location": "Austin, TX",    "region": "TX", "category": "Meat",      "featured": true,  "slug": "hill-country-beef","tagline": "Pasture-raised Texas beef" },
+    { "id": 4, "name": "Peach State Preserves", "location": "Macon, GA",     "region": "GA", "category": "Specialty", "featured": true,  "slug": "peach-state-preserves","tagline": "Small-batch Georgia peach preserves" },
+    { "id": 5, "name": "Blue Ridge Berries",    "location": "Asheville, NC", "region": "NC", "category": "Produce",   "featured": true,  "slug": "blue-ridge-berries","tagline": "Organic mountain berries" },
+    { "id": 6, "name": "Smoky Mountain Honey",  "location": "Knoxville, TN", "region": "TN", "category": "Specialty", "featured": false, "slug": "smoky-mountain-honey","tagline": "Tennessee wildflower honey" },
+    { "id": 7, "name": "Garden State Greens",   "location": "Princeton, NJ", "region": "NJ", "category": "Produce",   "featured": true,  "slug": "garden-state-greens","tagline": "NJ farm-to-door greens" },
+    { "id": 8, "name": "Lowcountry Oysters",    "location": "Charleston, SC","region": "SC", "category": "Seafood",   "featured": false, "slug": "lowcountry-oysters","tagline": "Single-origin SC oysters" }
+  ],
+  "products": [
+    { "id": 1,  "vendorId": 1, "vendorName": "Sunshine Citrus Co-op", "name": "Valencia Oranges (5lb)",     "priceDollars": 24.00, "unit": "bag",  "category": "Produce",   "inStock": true,  "featured": true,  "listingType": "regular" },
+    { "id": 2,  "vendorId": 1, "vendorName": "Sunshine Citrus Co-op", "name": "Pink Grapefruit (3lb)",      "priceDollars": 18.00, "unit": "bag",  "category": "Produce",   "inStock": true,  "featured": false, "listingType": "regular" },
+    { "id": 3,  "vendorId": 2, "vendorName": "Tampa Bay Honey Co.",   "name": "Wildflower Honey (16oz)",    "priceDollars": 14.00, "unit": "jar",  "category": "Specialty", "inStock": true,  "featured": true,  "listingType": "regular" },
+    { "id": 4,  "vendorId": 3, "vendorName": "Hill Country Beef",     "name": "Grass-Fed Ribeye (12oz)",    "priceDollars": 32.00, "unit": "steak","category": "Meat",      "inStock": true,  "featured": true,  "listingType": "regular" },
+    { "id": 5,  "vendorId": 3, "vendorName": "Hill Country Beef",     "name": "Ground Beef (1lb)",          "priceDollars": 12.00, "unit": "lb",   "category": "Meat",      "inStock": false, "featured": false, "listingType": "regular" },
+    { "id": 6,  "vendorId": 4, "vendorName": "Peach State Preserves", "name": "Peach Jam (8oz)",            "priceDollars":  9.00, "unit": "jar",  "category": "Specialty", "inStock": true,  "featured": true,  "listingType": "regular" },
+    { "id": 7,  "vendorId": 5, "vendorName": "Blue Ridge Berries",    "name": "Mixed Berry Box (1lb)",      "priceDollars": 22.00, "unit": "box",  "category": "Produce",   "inStock": true,  "featured": true,  "listingType": "batch_drop" },
+    { "id": 8,  "vendorId": 7, "vendorName": "Garden State Greens",   "name": "Spring Salad Mix (8oz)",     "priceDollars":  7.50, "unit": "bag",  "category": "Produce",   "inStock": true,  "featured": false, "listingType": "regular" }
+  ],
+  "webhooks": [
+    { "id": 1, "label": "Slack: ops alerts",     "url": "https://hooks.slack.com/services/T0/B0/XXX",       "events": ["vendor.created", "support.ticket.created"], "active": true,  "createdAt": "2026-06-01T00:00:00Z", "lastDeliveryAt": "2026-08-24T18:12:00Z", "lastDeliveryStatus": 200, "deliveriesLast24h": 4 },
+    { "id": 2, "label": "Resend: stripe sync",    "url": "https://api.openlocal.com/internal/stripe-bridge",  "events": ["vendor.subscription.changed"], "active": true,  "createdAt": "2026-06-15T00:00:00Z", "lastDeliveryAt": "2026-08-24T22:01:00Z", "lastDeliveryStatus": 200, "deliveriesLast24h": 12 },
+    { "id": 3, "label": "Zapier: CRM new lead",  "url": "https://hooks.zapier.com/hooks/catch/123/abc",      "events": ["vendor.created"],                            "active": false, "createdAt": "2026-07-10T00:00:00Z", "lastDeliveryAt": "2026-08-12T09:00:00Z", "lastDeliveryStatus": 410, "deliveriesLast24h": 0 }
+  ],
+  "support": [
+    { "id": "SUP-1A2B3C", "subject": "Can't upload product photos",   "email": "ava@sunshine-citrus.com",  "status": "open",        "priority": "high",   "createdAt": "2026-08-20T14:23:00Z", "updatedAt": "2026-08-22T10:00:00Z" },
+    { "id": "SUP-2D3E4F", "subject": "Stripe webhook failed",         "email": "admin@openlocal.com",      "status": "in_progress", "priority": "urgent", "createdAt": "2026-08-22T09:15:00Z", "updatedAt": "2026-08-24T22:01:00Z" },
+    { "id": "SUP-3G4H5I", "subject": "Trial expired, can't re-subscribe", "email": "dale@smokymtn.com",     "status": "resolved",   "priority": "medium", "createdAt": "2026-08-15T16:30:00Z", "updatedAt": "2026-08-19T11:00:00Z" },
+    { "id": "SUP-4J5K6L", "subject": "Mobile app: photo upload broken", "email": "kate@gardenstate.co",  "status": "open",        "priority": "medium", "createdAt": "2026-08-23T08:00:00Z", "updatedAt": "2026-08-23T08:00:00Z" }
+  ]
+}

@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import { PrismaClient } from "@prisma/client";
+import { notifyOthers } from "@/lib/notify";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
 const adapter = new PrismaPg(pool);
@@ -43,6 +44,16 @@ export async function POST(req: NextRequest) {
       projectId: projectId || null,
     },
   });
+
+  void notifyOthers({
+    actorUserId: session.user.id,
+    actorName: session.user.name || "Someone",
+    type: "credential.created",
+    title: `New credential · ${cred.category}`,
+    body: cred.name,
+    link: `/credentials?focus=${cred.id}`,
+    entityId: cred.id,
+  }).catch(() => {});
 
   return NextResponse.json(cred, { status: 201 });
 }

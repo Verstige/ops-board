@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import { PrismaClient } from "@prisma/client";
+import { notifyOthers } from "@/lib/notify";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
 const adapter = new PrismaPg(pool);
@@ -28,6 +29,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       ...(body.notes !== undefined && { notes: body.notes }),
     },
   });
+
+  if (body.status !== undefined && (body.status === "AT_RISK" || body.status === "COMPLETED")) {
+    void notifyOthers({
+      actorUserId: session.user.id,
+      actorName: session.user.name || "Someone",
+      type: "milestone.status_changed",
+      title: `Milestone · ${body.status === "COMPLETED" ? "completed" : "at risk"}`,
+      body: milestone.title,
+      link: `/milestones?focus=${milestone.id}`,
+      entityId: milestone.id,
+    }).catch(() => {});
+  }
 
   return NextResponse.json(milestone);
 }

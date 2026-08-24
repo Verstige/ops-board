@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { IconPlus, IconCalendar, IconNotes, IconTasks, IconInvestors } from "@/components/Icons";
 import { RoleBadge } from "@/components/RoleBadge";
 import { getRoleDisplay } from "@/lib/role";
+import { InstallPrompt } from "@/components/InstallPrompt";
 
 const QUICK_ACTIONS = [
   { label: "New Task", href: "/tasks", icon: <IconTasks size={16} /> },
@@ -31,6 +32,8 @@ export default function DashboardPage() {
 
   return (
     <div className="glass-fade" style={{ maxWidth: 1280, margin: "0 auto" }}>
+      <InstallPrompt />
+
       {/* Hero greeting */}
       <div style={{ marginBottom: 32, display: "flex", alignItems: "flex-start", gap: 20, flexWrap: "wrap" }}>
         <div style={{ flex: 1, minWidth: 260 }}>

@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import { PrismaClient } from "@prisma/client";
+import { notifyOthers } from "@/lib/notify";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
 const adapter = new PrismaPg(pool);
@@ -43,6 +44,17 @@ export async function POST(req: NextRequest) {
     data: { title, description, status: status || "TODO", priority: priority || "MEDIUM", dueDate: dueDate ? new Date(dueDate) : null, assigneeId, projectId },
     include: { assignee: { select: { id: true, name: true } }, project: { select: { id: true, name: true, color: true } } },
   });
+
+  // Fire-and-forget notification
+  void notifyOthers({
+    actorUserId: session.user.id,
+    actorName: session.user.name || "Someone",
+    type: "task.created",
+    title: `New task in ${task.project.name}`,
+    body: `${task.title} · assigned to ${task.assignee.name}`,
+    link: `/tasks?focus=${task.id}`,
+    entityId: task.id,
+  }).catch(() => {});
 
   return NextResponse.json(task, { status: 201 });
 }

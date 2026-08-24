@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import { PrismaClient } from "@prisma/client";
+import { notifyOthers } from "@/lib/notify";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
 const adapter = new PrismaPg(pool);
@@ -41,6 +42,16 @@ export async function POST(req: NextRequest) {
     },
     include: { organizer: { select: { id: true, name: true } }, project: { select: { id: true, name: true, color: true } } },
   });
+
+  void notifyOthers({
+    actorUserId: session.user.id,
+    actorName: session.user.name || "Someone",
+    type: "calendar.created",
+    title: `New event: ${event.title}`,
+    body: event.project?.name ? `${event.project.name} · ${new Date(event.start).toLocaleString()}` : new Date(event.start).toLocaleString(),
+    link: `/calendar?focus=${event.id}`,
+    entityId: event.id,
+  }).catch(() => {});
 
   return NextResponse.json(event, { status: 201 });
 }

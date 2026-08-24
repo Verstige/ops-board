@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import { PrismaClient } from "@prisma/client";
+import { notifyOthers } from "@/lib/notify";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
 const adapter = new PrismaPg(pool);
@@ -42,6 +43,16 @@ export async function POST(req: NextRequest) {
       authorId: (session.user as any).id,
     },
   });
+
+  void notifyOthers({
+    actorUserId: session.user.id,
+    actorName: session.user.name || "Someone",
+    type: "investor_update.created",
+    title: `Investor update · ${update.type}`,
+    body: update.title,
+    link: `/investors?focus=${update.id}`,
+    entityId: update.id,
+  }).catch(() => {});
 
   return NextResponse.json(update, { status: 201 });
 }

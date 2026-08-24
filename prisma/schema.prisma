@@ -24,8 +24,51 @@ model User {
   credentials     Credential[]
   investorUpdates InvestorUpdate[]
   sprints         SprintMember[]
+  pushSubscriptions PushSubscription[]
+  notifications     Notification[]
 
   @@map("users")
+}
+
+// ─── Push Subscriptions (PWA Web Push) ────────────────────────────────────────
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  isActive  Boolean  @default(true)
+  lastSentAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isActive])
+  @@map("push_subscriptions")
+}
+
+// ─── In-app Notifications ────────────────────────────────────────────────────
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // "task.created" | "task.status_changed" | "calendar.created" | "note.created" | "credential.created" | "milestone.status_changed" | "investor_update.created"
+  title     String
+  body      String
+  link      String   // client route like "/tasks?focus=abc123"
+  entityId  String?  // id of the source entity (task id, note id, etc)
+  actorName String?  // who triggered it (e.g. "Chrissy")
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt])
+  @@map("notifications")
 }
 
 // ─── Projects ───────────────────────────────────────────────────────────────────

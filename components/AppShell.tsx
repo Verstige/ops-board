@@ -11,6 +11,7 @@ import {
 import { RoleBadge } from "./RoleBadge";
 import { getRoleDisplay } from "@/lib/role";
 import { useTheme } from "./ThemeProvider";
+import { NotificationBell } from "./NotificationBell";
 
 type NavItem = {
   href: string;
@@ -181,6 +182,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
             </div>
           </div>
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+            <NotificationBell />
             <ThemeToggle />
           </div>
         </header>

@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -8,26 +8,26 @@ import {
   IconDashboard, IconTasks, IconCalendar, IconNotes, IconCredentials,
   IconSprints, IconMilestones, IconGithub, IconInvestors, IconSun, IconMoon, IconBrandMark, IconLogout,
 } from "./Icons";
+import { RoleBadge } from "./RoleBadge";
+import { getRoleDisplay } from "@/lib/role";
 import { useTheme } from "./ThemeProvider";
 
 type NavItem = {
   href: string;
   label: string;
   icon: ReactNode;
-  /** Items shown in mobile bottom tab bar (subset of full nav) */
-  mobile?: boolean;
 };
 
 const NAV: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: <IconDashboard size={18} className="nav-icon" />, mobile: true },
-  { href: "/tasks", label: "Tasks", icon: <IconTasks size={18} className="nav-icon" />, mobile: true },
-  { href: "/calendar", label: "Calendar", icon: <IconCalendar size={18} className="nav-icon" />, mobile: true },
-  { href: "/sprints", label: "Sprints", icon: <IconSprints size={18} className="nav-icon" /> },
-  { href: "/milestones", label: "Milestones", icon: <IconMilestones size={18} className="nav-icon" /> },
-  { href: "/notes", label: "Notes", icon: <IconNotes size={18} className="nav-icon" /> },
-  { href: "/investors", label: "Investors", icon: <IconInvestors size={18} className="nav-icon" /> },
-  { href: "/github", label: "GitHub", icon: <IconGithub size={18} className="nav-icon" /> },
-  { href: "/credentials", label: "Credentials", icon: <IconCredentials size={18} className="nav-icon" /> },
+  { href: "/dashboard",    label: "Dashboard",    icon: <IconDashboard size={18} className="nav-icon" /> },
+  { href: "/tasks",        label: "Tasks",        icon: <IconTasks size={18} className="nav-icon" /> },
+  { href: "/calendar",     label: "Calendar",     icon: <IconCalendar size={18} className="nav-icon" /> },
+  { href: "/sprints",      label: "Sprints",      icon: <IconSprints size={18} className="nav-icon" /> },
+  { href: "/milestones",   label: "Milestones",   icon: <IconMilestones size={18} className="nav-icon" /> },
+  { href: "/notes",        label: "Notes",        icon: <IconNotes size={18} className="nav-icon" /> },
+  { href: "/investors",    label: "Investors",    icon: <IconInvestors size={18} className="nav-icon" /> },
+  { href: "/github",       label: "GitHub",       icon: <IconGithub size={18} className="nav-icon" /> },
+  { href: "/credentials",  label: "Credentials",  icon: <IconCredentials size={18} className="nav-icon" /> },
 ];
 
 function ThemeToggle() {
@@ -65,13 +65,28 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   );
 }
 
+/** Scrolls the active mobile tab into view inside the dock */
+function useScrollActiveIntoView(activeHref: string) {
+  const dockRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!dockRef.current) return;
+    const el = dockRef.current.querySelector(`[data-href="${activeHref}"]`) as HTMLElement | null;
+    if (!el) return;
+    const dock = dockRef.current;
+    const target = el.offsetLeft - dock.clientWidth / 2 + el.clientWidth / 2;
+    dock.scrollTo({ left: Math.max(0, target), behavior: "smooth" });
+  }, [activeHref]);
+  return dockRef;
+}
+
 export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() || "/";
   const { data: session } = useSession();
   const { theme } = useTheme();
+  const role = getRoleDisplay(session?.user?.role);
+  const dockRef = useScrollActiveIntoView(pathname);
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
-  const mobileNav = NAV.filter((n) => n.mobile);
 
   return (
     <div className="app-shell">
@@ -113,19 +128,22 @@ export default function AppShell({ children }: { children: ReactNode }) {
               <div
                 style={{
                   width: 32, height: 32, borderRadius: "50%",
-                  background: "linear-gradient(135deg, var(--brand-300), var(--brand-600))",
+                  background: `linear-gradient(135deg, ${role.gradient[0]}, ${role.gradient[1]})`,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   color: "white", fontSize: 12, fontWeight: 700,
+                  flexShrink: 0,
                 }}
               >
                 {session.user.name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "U"}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {session.user.name}
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {session.user.name}
+                  </div>
                 </div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {session.user.email}
+                <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700 }}>
+                  {role.short}
                 </div>
               </div>
               <button
@@ -133,7 +151,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
                 aria-label="Sign out"
                 title="Sign out"
                 className="btn-icon"
-                style={{ width: 30, height: 30, borderRadius: 10 }}
+                style={{ width: 30, height: 30, borderRadius: 10, flexShrink: 0 }}
               >
                 <IconLogout size={14} />
               </button>
@@ -144,12 +162,12 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
       {/* Main column */}
       <div className="app-main">
-        {/* Mobile-only header (theme toggle visible on mobile lives here too) */}
+        {/* Mobile-only header */}
         <header className="app-header">
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
             <div
               style={{
-                width: 32, height: 32, borderRadius: 10,
+                width: 32, height: 32, borderRadius: 10, flexShrink: 0,
                 background: "linear-gradient(135deg, var(--brand-400), var(--brand-700))",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 color: "white",
@@ -157,12 +175,12 @@ export default function AppShell({ children }: { children: ReactNode }) {
             >
               <IconBrandMark size={20} />
             </div>
-            <div style={{ lineHeight: 1.1 }}>
+            <div style={{ lineHeight: 1.1, minWidth: 0 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>Ops Board</div>
-              <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{theme === "dark" ? "Dark" : "Light"}</div>
+              <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{role.short} · {theme === "dark" ? "Dark" : "Light"}</div>
             </div>
           </div>
-          <div style={{ marginLeft: "auto" }}>
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
             <ThemeToggle />
           </div>
         </header>
@@ -170,12 +188,17 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <main className="app-content">{children}</main>
       </div>
 
-      {/* Mobile bottom tabs */}
-      <nav className="bottom-tabs" aria-label="Primary">
-        {mobileNav.map((item) => {
+      {/* Mobile scrollable dock — all 9 tabs */}
+      <nav className="bottom-tabs" aria-label="Primary" ref={dockRef}>
+        {NAV.map((item) => {
           const active = isActive(item.href);
           return (
-            <Link key={item.href} href={item.href} className={`tab-link${active ? " active" : ""}`}>
+            <Link
+              key={item.href}
+              href={item.href}
+              data-href={item.href}
+              className={`tab-link${active ? " active" : ""}`}
+            >
               {item.icon}
               <span>{item.label}</span>
             </Link>

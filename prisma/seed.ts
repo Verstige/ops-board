@@ -19,23 +19,23 @@ async function main() {
   // ─── Users ─────────────────────────────────────────────────────────────────
   const julylan = await prisma.user.upsert({
     where: { email: "julylan@openlocal.com" },
-    update: {},
+    update: { role: "CTO" },
     create: {
       name: "Julylan Johnson",
       email: "julylan@openlocal.com",
       passwordHash: await bcrypt.hash("julylan888", 12),
-      role: "ADMIN",
+      role: "CTO",
     },
   });
 
   const chrissy = await prisma.user.upsert({
     where: { email: "chrissy@openlocal.com" },
-    update: {},
+    update: { role: "CEO" },
     create: {
       name: "Christian Artiles",
       email: "chrissy@openlocal.com",
       passwordHash: await bcrypt.hash("chrissy888", 12),
-      role: "ADMIN",
+      role: "CEO",
     },
   });
 

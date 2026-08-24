@@ -14,7 +14,7 @@ model User {
   name         String
   email        String    @unique
   passwordHash String
-  role         String    @default("MEMBER") // ADMIN | MEMBER
+  role         String    @default("MEMBER") // ADMIN | MEMBER | CEO | CTO
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 

@@ -4,6 +4,8 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { IconPlus, IconCalendar, IconNotes, IconTasks, IconInvestors } from "@/components/Icons";
+import { RoleBadge } from "@/components/RoleBadge";
+import { getRoleDisplay } from "@/lib/role";
 
 const QUICK_ACTIONS = [
   { label: "New Task", href: "/tasks", icon: <IconTasks size={16} /> },
@@ -14,6 +16,7 @@ const QUICK_ACTIONS = [
 export default function DashboardPage() {
   const { data: session } = useSession();
   const [stats, setStats] = useState({ tasks: 0, projects: 0, events: 0, notes: 0 });
+  const role = getRoleDisplay(session?.user?.role);
 
   useEffect(() => {
     fetch("/api/dashboard")
@@ -24,18 +27,26 @@ export default function DashboardPage() {
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const firstName = session?.user?.name?.split(" ")[0] || "there";
 
   return (
     <div className="glass-fade" style={{ maxWidth: 1280, margin: "0 auto" }}>
       {/* Hero greeting */}
-      <div style={{ marginBottom: 36 }}>
-        <div style={{ fontSize: 11, color: "var(--brand-600)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 8 }}>
-          {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
+      <div style={{ marginBottom: 32, display: "flex", alignItems: "flex-start", gap: 20, flexWrap: "wrap" }}>
+        <div style={{ flex: 1, minWidth: 260 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+            <div style={{ fontSize: 11, color: "var(--brand-600)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em" }}>
+              {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
+            </div>
+            <RoleBadge role={role} size="sm" glow />
+          </div>
+          <h1 className="section-title">
+            {greeting}, {firstName}
+          </h1>
+          <p className="section-subtitle">
+            {role.full} — here's what's happening across Open Local.
+          </p>
         </div>
-        <h1 className="section-title">
-          {greeting}, {session?.user?.name?.split(" ")[0] || "there"}
-        </h1>
-        <p className="section-subtitle">Here's what's happening across Open Local.</p>
       </div>
 
       {/* Stat cards */}
@@ -74,7 +85,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Status pills row */}
+      {/* Status row */}
       <div className="card" style={{ background: "color-mix(in srgb, var(--brand-500) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--brand-500) 18%, transparent)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--brand-500)", boxShadow: "0 0 0 4px color-mix(in srgb, var(--brand-500) 24%, transparent)" }} />

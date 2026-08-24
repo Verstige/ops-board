@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useEffect, useState, useCallback } from "react";
-import { IconPlus, IconClose } from "@/components/Icons";
+import { IconPlus, IconClose, IconEdit, IconCheck } from "@/components/Icons";
 
 const COLUMNS = [
   { key: "TODO", label: "To Do" },
@@ -47,6 +47,13 @@ export default function TasksPage() {
   const [creating, setCreating] = useState(false);
   const [createWarning, setCreateWarning] = useState<string | null>(null);
 
+  // Per-task inline-edit state. Map<taskId, EditDraft>
+  const [edits, setEdits] = useState<Record<string, {
+    title: string; description: string; priority: string;
+    dueDate: string; assigneeId: string; projectId: string;
+    saving: boolean; error: string | null;
+  }>>({});
+
   const load = useCallback(async () => {
     const qs = filterProject ? `?projectId=${filterProject}` : "";
     const [t, p, u] = await Promise.all([
@@ -89,6 +96,65 @@ export default function TasksPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: newStatus }),
     });
+  }
+
+  function startEdit(task: Task) {
+    setEdits((prev) => ({
+      ...prev,
+      [task.id]: {
+        title: task.title,
+        description: task.description ?? "",
+        priority: task.priority,
+        dueDate: task.dueDate ? task.dueDate.slice(0, 10) : "",
+        assigneeId: task.assignee.id,
+        projectId: task.project.id,
+        saving: false,
+        error: null,
+      },
+    }));
+  }
+
+  function cancelEdit(taskId: string) {
+    setEdits((prev) => {
+      const next = { ...prev };
+      delete next[taskId];
+      return next;
+    });
+  }
+
+  function updateEdit(taskId: string, patch: Partial<NonNullable<typeof edits[string]>>) {
+    setEdits((prev) => ({ ...prev, [taskId]: { ...prev[taskId], ...patch, error: null } }));
+  }
+
+  async function saveEdit(taskId: string) {
+    const draft = edits[taskId];
+    if (!draft) return;
+    if (!draft.title.trim()) {
+      updateEdit(taskId, { error: "Title is required" });
+      return;
+    }
+    updateEdit(taskId, { saving: true });
+    const res = await fetch(`/api/tasks/${taskId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: draft.title.trim(),
+        description: draft.description.trim() || null,
+        priority: draft.priority,
+        dueDate: draft.dueDate || null,
+        assigneeId: draft.assigneeId,
+      }),
+    });
+    if (!res.ok) {
+      updateEdit(taskId, { saving: false, error: `Save failed (HTTP ${res.status})` });
+      return;
+    }
+    // Optimistic local update from the server response
+    const updated = await res.json();
+    setTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, ...updated } : t));
+    cancelEdit(taskId);
+    // Re-fetch to pick up the project color / assignee ref if project changed
+    load();
   }
 
   async function deleteTask(id: string) {
@@ -163,87 +229,188 @@ export default function TasksPage() {
                     No tasks
                   </div>
                 )}
-                {colTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className="card glass-fade"
-                    style={{
-                      padding: 14,
-                      borderLeft: `3px solid ${task.project.color}`,
-                      animationDelay: "0ms",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
-                      <span className={`badge badge-${task.priority}`}>{task.priority}</span>
-                      <span style={{ fontSize: 10, color: task.project.color, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                        {task.project.name}
-                      </span>
-                      {task.githubIssueNumber && task.githubIssueUrl && (
-                        <a
-                          href={task.githubIssueUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          title="Open linked GitHub issue"
-                          style={{
-                            fontSize: 10, fontWeight: 700, fontFamily: "var(--font-mono)",
-                            background: "color-mix(in srgb, var(--brand-500) 14%, transparent)",
-                            color: "var(--brand-600)",
-                            padding: "2px 8px", borderRadius: 999,
-                            textDecoration: "none",
-                            border: "1px solid color-mix(in srgb, var(--brand-500) 30%, transparent)",
-                          }}
-                        >
-                          ↗ #{task.githubIssueNumber}
-                        </a>
+                {colTasks.map((task) => {
+                  const edit = edits[task.id];
+                  const isEditing = !!edit;
+                  return (
+                    <div
+                      key={task.id}
+                      className="card glass-fade"
+                      style={{
+                        padding: 14,
+                        borderLeft: `3px solid ${task.project.color}`,
+                        animationDelay: "0ms",
+                      }}
+                    >
+                      {!isEditing ? (
+                        // ─── View mode ──────────────────────────────────────────
+                        <>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
+                            <span className={`badge badge-${task.priority}`}>{task.priority}</span>
+                            <span style={{ fontSize: 10, color: task.project.color, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                              {task.project.name}
+                            </span>
+                            {task.githubIssueNumber && task.githubIssueUrl && (
+                              <a
+                                href={task.githubIssueUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                title="Open linked GitHub issue"
+                                style={{
+                                  fontSize: 10, fontWeight: 700, fontFamily: "var(--font-mono)",
+                                  background: "color-mix(in srgb, var(--brand-500) 14%, transparent)",
+                                  color: "var(--brand-600)",
+                                  padding: "2px 8px", borderRadius: 999,
+                                  textDecoration: "none",
+                                  border: "1px solid color-mix(in srgb, var(--brand-500) 30%, transparent)",
+                                }}
+                              >
+                                ↗ #{task.githubIssueNumber}
+                              </a>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", lineHeight: 1.4, marginBottom: 6 }}>
+                            {task.title}
+                          </div>
+                          {task.description && (
+                            <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 10, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+                              {task.description}
+                            </div>
+                          )}
+                          {task.dueDate && (
+                            <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 10 }}>
+                              Due {new Date(task.dueDate).toLocaleDateString()}
+                            </div>
+                          )}
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <div
+                                style={{
+                                  width: 22, height: 22, borderRadius: "50%",
+                                  background: "linear-gradient(135deg, var(--brand-300), var(--brand-600))",
+                                  display: "flex", alignItems: "center", justifyContent: "center",
+                                  color: "white", fontSize: 10, fontWeight: 700,
+                                }}
+                              >
+                                {task.assignee.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                              </div>
+                              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{task.assignee.name.split(" ")[0]}</span>
+                            </div>
+                            <div style={{ display: "flex", gap: 2 }}>
+                              {COLUMNS.filter((c) => c.key !== task.status).map((c) => (
+                                <button
+                                  key={c.key}
+                                  onClick={() => moveTask(task, c.key)}
+                                  title={`Move to ${c.label}`}
+                                  className="btn-icon"
+                                  style={{ width: 24, height: 24, borderRadius: 7, fontSize: 10, padding: 0 }}
+                                >
+                                  <span style={{ fontSize: 9, fontWeight: 700 }}>{c.label[0]}</span>
+                                </button>
+                              ))}
+                              <button
+                                onClick={() => startEdit(task)}
+                                title="Edit task"
+                                className="btn-icon"
+                                style={{ width: 24, height: 24, borderRadius: 7 }}
+                                aria-label="Edit"
+                              >
+                                <IconEdit size={12} />
+                              </button>
+                              <button
+                                onClick={() => deleteTask(task.id)}
+                                className="btn-icon"
+                                style={{ width: 24, height: 24, borderRadius: 7, color: "var(--status-blocked-fg)" }}
+                                aria-label="Delete"
+                                title="Delete task"
+                              >
+                                <IconClose size={11} />
+                              </button>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        // ─── Edit mode ──────────────────────────────────────────
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                          {edit.error && (
+                            <div style={{
+                              padding: "6px 10px", borderRadius: 8,
+                              background: "color-mix(in srgb, var(--status-blocked-fg) 14%, transparent)",
+                              border: "1px solid color-mix(in srgb, var(--status-blocked-fg) 30%, transparent)",
+                              color: "var(--status-blocked-fg)", fontSize: 11, fontWeight: 600,
+                            }}>
+                              ⚠ {edit.error}
+                            </div>
+                          )}
+                          <input
+                            value={edit.title}
+                            onChange={(e) => updateEdit(task.id, { title: e.target.value })}
+                            placeholder="Title"
+                            disabled={edit.saving}
+                            autoFocus
+                            style={{ fontSize: 14, fontWeight: 600, padding: "6px 10px" }}
+                          />
+                          <textarea
+                            value={edit.description}
+                            onChange={(e) => updateEdit(task.id, { description: e.target.value })}
+                            placeholder="Description (optional)"
+                            disabled={edit.saving}
+                            rows={2}
+                            style={{ fontSize: 12, padding: "6px 10px", resize: "vertical" }}
+                          />
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                            <select
+                              value={edit.priority}
+                              onChange={(e) => updateEdit(task.id, { priority: e.target.value })}
+                              disabled={edit.saving}
+                              style={{ fontSize: 11, padding: "5px 8px" }}
+                              title="Priority"
+                            >
+                              {PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
+                            </select>
+                            <input
+                              type="date"
+                              value={edit.dueDate}
+                              onChange={(e) => updateEdit(task.id, { dueDate: e.target.value })}
+                              disabled={edit.saving}
+                              style={{ fontSize: 11, padding: "5px 8px" }}
+                              title="Due date"
+                            />
+                          </div>
+                          <select
+                            value={edit.assigneeId}
+                            onChange={(e) => updateEdit(task.id, { assigneeId: e.target.value })}
+                            disabled={edit.saving}
+                            style={{ fontSize: 11, padding: "5px 8px" }}
+                            title="Assignee"
+                          >
+                            {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                          </select>
+                          <div style={{ display: "flex", justifyContent: "flex-end", gap: 6, marginTop: 2 }}>
+                            <button
+                              onClick={() => cancelEdit(task.id)}
+                              disabled={edit.saving}
+                              className="btn-ghost"
+                              style={{ fontSize: 11, padding: "6px 10px" }}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => saveEdit(task.id)}
+                              disabled={edit.saving}
+                              className="btn-primary"
+                              style={{ fontSize: 11, padding: "6px 12px", display: "inline-flex", alignItems: "center", gap: 4 }}
+                            >
+                              <IconCheck size={12} />
+                              {edit.saving ? "Saving…" : "Save"}
+                            </button>
+                          </div>
+                        </div>
                       )}
                     </div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", lineHeight: 1.4, marginBottom: 6 }}>
-                      {task.title}
-                    </div>
-                    {task.description && (
-                      <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 10, lineHeight: 1.5 }}>
-                        {task.description}
-                      </div>
-                    )}
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <div
-                          style={{
-                            width: 22, height: 22, borderRadius: "50%",
-                            background: "linear-gradient(135deg, var(--brand-300), var(--brand-600))",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            color: "white", fontSize: 10, fontWeight: 700,
-                          }}
-                        >
-                          {task.assignee.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                        </div>
-                        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{task.assignee.name.split(" ")[0]}</span>
-                      </div>
-                      <div style={{ display: "flex", gap: 2 }}>
-                        {COLUMNS.filter((c) => c.key !== task.status).map((c) => (
-                          <button
-                            key={c.key}
-                            onClick={() => moveTask(task, c.key)}
-                            title={`Move to ${c.label}`}
-                            className="btn-icon"
-                            style={{ width: 24, height: 24, borderRadius: 7, fontSize: 10, padding: 0 }}
-                          >
-                            <span style={{ fontSize: 9, fontWeight: 700 }}>{c.label[0]}</span>
-                          </button>
-                        ))}
-                        <button
-                          onClick={() => deleteTask(task.id)}
-                          className="btn-icon"
-                          style={{ width: 24, height: 24, borderRadius: 7, color: "var(--status-blocked-fg)" }}
-                          aria-label="Delete"
-                        >
-                          <IconClose size={11} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           );

@@ -1,0 +1,34 @@
+{
+  "_comment": "Fallback vendor snapshot used when OPEN_LOCAL_API_URL is unset or unreachable. Cover the 6 focus states so the map always renders. Keep this in sync with the real open-local DB as vendors come online.",
+  "FL": [
+    { "id": "fl-1", "name": "Sunshine Citrus Co-op", "location": "Homestead, FL", "region": "FL", "category": "Produce", "featured": true,  "slug": "sunshine-citrus" },
+    { "id": "fl-2", "name": "Tampa Bay Honey Co.",  "location": "Tampa, FL",     "region": "FL", "category": "Specialty", "featured": true,  "slug": "tampa-bay-honey" },
+    { "id": "fl-3", "name": "Gainesville Greens",    "location": "Gainesville, FL","region": "FL","category": "Produce", "featured": false, "slug": "gainesville-greens" },
+    { "id": "fl-4", "name": "Key West Coffee Roasters","location": "Key West, FL","region": "FL","category": "Beverage", "featured": true,  "slug": "key-west-coffee" }
+  ],
+  "TX": [
+    { "id": "tx-1", "name": "Hill Country Beef",     "location": "Austin, TX",     "region": "TX", "category": "Meat",      "featured": true,  "slug": "hill-country-beef" },
+    { "id": "tx-2", "name": "Houston Dairy Collective","location": "Houston, TX",  "region": "TX", "category": "Dairy",     "featured": false, "slug": "houston-dairy" },
+    { "id": "tx-3", "name": "DFW Sourdough",         "location": "Dallas, TX",     "region": "TX", "category": "Bakery",    "featured": true,  "slug": "dfw-sourdough" }
+  ],
+  "GA": [
+    { "id": "ga-1", "name": "Peach State Preserves", "location": "Macon, GA",      "region": "GA", "category": "Specialty", "featured": true,  "slug": "peach-state-preserves" },
+    { "id": "ga-2", "name": "Atlanta Urban Mushrooms","location": "Atlanta, GA",   "region": "GA", "category": "Produce",   "featured": false, "slug": "atlanta-urban-mushrooms" }
+  ],
+  "TN": [
+    { "id": "tn-1", "name": "Smoky Mountain Honey",  "location": "Knoxville, TN",  "region": "TN", "category": "Specialty", "featured": true,  "slug": "smoky-mountain-honey" },
+    { "id": "tn-2", "name": "Nashville Hot Sauce Co.","location": "Nashville, TN",  "region": "TN", "category": "Specialty", "featured": false, "slug": "nashville-hot-sauce" }
+  ],
+  "NJ": [
+    { "id": "nj-1", "name": "Garden State Greens",   "location": "Princeton, NJ",  "region": "NJ", "category": "Produce",   "featured": true,  "slug": "garden-state-greens" },
+    { "id": "nj-2", "name": "Jersey Shore Seafood",  "location": "Point Pleasant, NJ","region": "NJ","category": "Seafood", "featured": false, "slug": "jersey-shore-seafood" }
+  ],
+  "SC": [
+    { "id": "sc-1", "name": "Lowcountry Oysters",    "location": "Charleston, SC", "region": "SC", "category": "Seafood",   "featured": true,  "slug": "lowcountry-oysters" },
+    { "id": "sc-2", "name": "Upstate Goat Dairy",    "location": "Greenville, SC", "region": "SC", "category": "Dairy",     "featured": false, "slug": "upstate-goat-dairy" }
+  ],
+  "NC": [
+    { "id": "nc-1", "name": "Blue Ridge Berries",    "location": "Asheville, NC",  "region": "NC", "category": "Produce",   "featured": true,  "slug": "blue-ridge-berries" },
+    { "id": "nc-2", "name": "Triangle Bread Co.",    "location": "Raleigh, NC",    "region": "NC", "category": "Bakery",    "featured": false, "slug": "triangle-bread" }
+  ]
+}

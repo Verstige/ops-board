@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import {
   IconDashboard, IconTasks, IconCalendar, IconNotes, IconCredentials,
-  IconSprints, IconMilestones, IconGithub, IconInvestors, IconSun, IconMoon, IconBrandMark, IconLogout,
+  IconSprints, IconMilestones, IconGithub, IconInvestors, IconSun, IconMoon, IconBrandMark, IconLogout, IconMap,
 } from "./Icons";
 import { RoleBadge } from "./RoleBadge";
 import { getRoleDisplay } from "@/lib/role";
@@ -28,6 +28,7 @@ const NAV: NavItem[] = [
   { href: "/notes",        label: "Notes",        icon: <IconNotes size={18} className="nav-icon" /> },
   { href: "/investors",    label: "Investors",    icon: <IconInvestors size={18} className="nav-icon" /> },
   { href: "/github",       label: "GitHub",       icon: <IconGithub size={18} className="nav-icon" /> },
+  { href: "/markets",      label: "Markets",      icon: <IconMap size={18} className="nav-icon" /> },
   { href: "/credentials",  label: "Credentials",  icon: <IconCredentials size={18} className="nav-icon" /> },
 ];
 

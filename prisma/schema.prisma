@@ -10,20 +10,20 @@ datasource db {
 // ─── Auth ──────────────────────────────────────────────────────────────────────
 
 model User {
-  id            String    @id @default(cuid())
+  id           String   @id @default(cuid())
   name         String
-  email        String    @unique
+  email        String   @unique
   passwordHash String
-  role         String    @default("MEMBER") // ADMIN | MEMBER | CEO | CTO
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  role         String   @default("MEMBER") // ADMIN | MEMBER | CEO | CTO
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  tasks           Task[]
-  notes           Note[]
-  events          CalendarEvent[]
-  credentials     Credential[]
-  investorUpdates InvestorUpdate[]
-  sprints         SprintMember[]
+  tasks             Task[]
+  notes             Note[]
+  events            CalendarEvent[]
+  credentials       Credential[]
+  investorUpdates   InvestorUpdate[]
+  sprints           SprintMember[]
   pushSubscriptions PushSubscription[]
   notifications     Notification[]
   performanceLogs   PerformanceLog[]
@@ -35,16 +35,16 @@ model User {
 // ─── Push Subscriptions (PWA Web Push) ────────────────────────────────────────
 
 model PushSubscription {
-  id        String   @id @default(cuid())
-  userId    String
-  endpoint  String   @unique
-  p256dh    String
-  auth      String
-  userAgent String?
-  isActive  Boolean  @default(true)
+  id         String    @id @default(cuid())
+  userId     String
+  endpoint   String    @unique
+  p256dh     String
+  auth       String
+  userAgent  String?
+  isActive   Boolean   @default(true)
   lastSentAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -58,12 +58,12 @@ model PushSubscription {
 model Notification {
   id        String   @id @default(cuid())
   userId    String
-  type      String   // "task.created" | "task.status_changed" | "calendar.created" | "note.created" | "credential.created" | "milestone.status_changed" | "investor_update.created"
+  type      String // "task.created" | "task.status_changed" | "calendar.created" | "note.created" | "credential.created" | "milestone.status_changed" | "investor_update.created"
   title     String
   body      String
-  link      String   // client route like "/tasks?focus=abc123"
-  entityId  String?  // id of the source entity (task id, note id, etc)
-  actorName String?  // who triggered it (e.g. "Chrissy")
+  link      String // client route like "/tasks?focus=abc123"
+  entityId  String? // id of the source entity (task id, note id, etc)
+  actorName String? // who triggered it (e.g. "Chrissy")
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 
@@ -76,25 +76,25 @@ model Notification {
 // ─── Projects ───────────────────────────────────────────────────────────────────
 
 model Project {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
   description String?
   repoUrl     String?
-  repoOwner   String?   // e.g. "mscartiles-lab" or "Verstige"
-  repoName    String?   // e.g. "open-local"
-  color       String    @default("#5c7cfa")
-  isMonitored Boolean   @default(false) // GitHub commits tracked
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  repoOwner   String? // e.g. "mscartiles-lab" or "Verstige"
+  repoName    String? // e.g. "open-local"
+  color       String   @default("#5c7cfa")
+  isMonitored Boolean  @default(false) // GitHub commits tracked
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  tasks        Task[]
-  notes        Note[]
-  events       CalendarEvent[]
-  sprints      Sprint[]
-  milestones   Milestone[]
-  artifacts    Artifact[]
+  tasks           Task[]
+  notes           Note[]
+  events          CalendarEvent[]
+  sprints         Sprint[]
+  milestones      Milestone[]
+  artifacts       Artifact[]
   investorUpdates InvestorUpdate[]
-  credentials  Credential[]
+  credentials     Credential[]
 
   @@map("projects")
 }
@@ -103,18 +103,18 @@ model Project {
 
 model Artifact {
   id          String   @id @default(cuid())
-  name       String   // e.g. "api-server", "open-local-mobile"
+  name        String // e.g. "api-server", "open-local-mobile"
   description String?
-  type       String   // API | MOBILE | WEB | DB | LIB | SCRIPT
-  repoPath   String?  // e.g. "artifacts/open-local"
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
+  type        String // API | MOBILE | WEB | DB | LIB | SCRIPT
+  repoPath    String? // e.g. "artifacts/open-local"
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
 
   projectId String
   project   Project @relation(fields: [projectId], references: [id])
 
-  commits  GitHubCommit[]
-  tasks    Task[]
+  commits GitHubCommit[]
+  tasks   Task[]
 
   @@map("artifacts")
 }
@@ -122,28 +122,28 @@ model Artifact {
 // ─── Sprints ───────────────────────────────────────────────────────────────────
 
 model Sprint {
-  id          String    @id @default(cuid())
-  name       String    // e.g. "Sprint 1 — Aug 25–Sep 5"
-  goal       String?   // Sprint goal
-  startDate  DateTime
-  endDate    DateTime
-  status     String    @default("PLANNING") // PLANNING | ACTIVE | COMPLETED
-  createdAt  DateTime  @default(now())
+  id        String   @id @default(cuid())
+  name      String // e.g. "Sprint 1 — Aug 25–Sep 5"
+  goal      String? // Sprint goal
+  startDate DateTime
+  endDate   DateTime
+  status    String   @default("PLANNING") // PLANNING | ACTIVE | COMPLETED
+  createdAt DateTime @default(now())
 
   projectId String
   project   Project @relation(fields: [projectId], references: [id])
 
-  members  SprintMember[]
-  tasks    Task[]
+  members SprintMember[]
+  tasks   Task[]
 
   @@map("sprints")
 }
 
 model SprintMember {
-  id       String @id @default(cuid())
+  id String @id @default(cuid())
 
-  userId   String
-  user     User   @relation(fields: [userId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
   sprintId String
   sprint   Sprint @relation(fields: [sprintId], references: [id])
@@ -156,15 +156,15 @@ model SprintMember {
 
 model Milestone {
   id          String    @id @default(cuid())
-  title      String    // e.g. "Technical Leadership"
+  title       String // e.g. "Technical Leadership"
   description String?
-  category    String    // TECHNICAL | OPERATIONAL | EXECUTIVE | GROWTH
-  status     String    @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | COMPLETED | AT_RISK
-  targetDate DateTime?
+  category    String // TECHNICAL | OPERATIONAL | EXECUTIVE | GROWTH
+  status      String    @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | COMPLETED | AT_RISK
+  targetDate  DateTime?
   completedAt DateTime?
-  notes      String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   projectId String
   project   Project @relation(fields: [projectId], references: [id])
@@ -177,18 +177,18 @@ model Milestone {
 // ─── Investor Updates ───────────────────────────────────────────────────────────
 
 model InvestorUpdate {
-  id          String   @id @default(cuid())
-  title      String
-  content    String   // markdown content
-  type       String   @default("PROGRESS") // PROGRESS | METRIC | DEMO | MILESTONE | PITCH
-  metrics    Json?    // { vendorsOnboarded: 12, mrr: 2400, ... }
-  sentAt     DateTime?
-  isPublished Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id          String    @id @default(cuid())
+  title       String
+  content     String // markdown content
+  type        String    @default("PROGRESS") // PROGRESS | METRIC | DEMO | MILESTONE | PITCH
+  metrics     Json? // { vendorsOnboarded: 12, mrr: 2400, ... }
+  sentAt      DateTime?
+  isPublished Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   authorId String
-  author   User    @relation(fields: [authorId], references: [id])
+  author   User   @relation(fields: [authorId], references: [id])
 
   projectId String?
   project   Project? @relation(fields: [projectId], references: [id])
@@ -222,28 +222,28 @@ model GitHubCommit {
 // ─── Tasks ─────────────────────────────────────────────────────────────────────
 
 model Task {
-  id          String    @id @default(cuid())
-  title      String
-  description String?
-  status     String    @default("TODO") // TODO | IN_PROGRESS | DONE | BLOCKED
-  priority   String    @default("MEDIUM") // LOW | MEDIUM | HIGH | URGENT
-  dueDate    DateTime?
-  storyPoints Int?     // for sprint velocity tracking
-  githubIssueNumber Int?  // linked GitHub issue
-  githubIssueUrl String?
-  notes       String?
-  completedAt DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id                String    @id @default(cuid())
+  title             String
+  description       String?
+  status            String    @default("TODO") // TODO | IN_PROGRESS | DONE | BLOCKED
+  priority          String    @default("MEDIUM") // LOW | MEDIUM | HIGH | URGENT
+  dueDate           DateTime?
+  storyPoints       Int? // for sprint velocity tracking
+  githubIssueNumber Int? // linked GitHub issue
+  githubIssueUrl    String?
+  notes             String?
+  completedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   assigneeId String
-  assignee   User      @relation(fields: [assigneeId], references: [id])
+  assignee   User   @relation(fields: [assigneeId], references: [id])
 
-  projectId  String
-  project    Project   @relation(fields: [projectId], references: [id])
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id])
 
-  sprintId   String?
-  sprint     Sprint?   @relation(fields: [sprintId], references: [id])
+  sprintId String?
+  sprint   Sprint? @relation(fields: [sprintId], references: [id])
 
   milestoneId String?
   milestone   Milestone? @relation(fields: [milestoneId], references: [id])
@@ -257,22 +257,22 @@ model Task {
 // ─── Calendar ──────────────────────────────────────────────────────────────────
 
 model CalendarEvent {
-  id          String   @id @default(cuid())
-  title      String
+  id          String    @id @default(cuid())
+  title       String
   description String?
-  start      DateTime
-  end        DateTime?
-  allDay     Boolean  @default(false)
-  location   String?
+  start       DateTime
+  end         DateTime?
+  allDay      Boolean   @default(false)
+  location    String?
   meetingUrl  String?
-  eventType  String   @default("MEETING") // MEETING | DEADLINE | REVIEW | DEMO | PITCH
-  createdAt  DateTime @default(now())
+  eventType   String    @default("MEETING") // MEETING | DEADLINE | REVIEW | DEMO | PITCH
+  createdAt   DateTime  @default(now())
 
-  projectId  String?
-  project    Project?  @relation(fields: [projectId], references: [id])
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
 
   organizerId String
-  organizer   User     @relation(fields: [organizerId], references: [id])
+  organizer   User   @relation(fields: [organizerId], references: [id])
 
   @@map("calendar_events")
 }
@@ -281,15 +281,15 @@ model CalendarEvent {
 
 model Note {
   id        String   @id @default(cuid())
-  title    String
-  content  String?
-  isShared Boolean  @default(false)
-  tags     String[] // e.g. ["architecture","interview","legal"]
+  title     String
+  content   String?
+  isShared  Boolean  @default(false)
+  tags      String[] // e.g. ["architecture","interview","legal"]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   authorId String
-  author   User    @relation(fields: [authorId], references: [id])
+  author   User   @relation(fields: [authorId], references: [id])
 
   projectId String?
   project   Project? @relation(fields: [projectId], references: [id])
@@ -301,20 +301,20 @@ model Note {
 
 model Credential {
   id        String   @id @default(cuid())
-  name     String
-  category String   @default("OTHER") // CLOUD | DATABASE | API | OTHER
-  url      String?
-  username String?
-  password String?
-  notes    String?
+  name      String
+  category  String   @default("OTHER") // CLOUD | DATABASE | API | OTHER
+  url       String?
+  username  String?
+  password  String?
+  notes     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   ownerId String
-  owner   User    @relation(fields: [ownerId], references: [id])
+  owner   User   @relation(fields: [ownerId], references: [id])
 
   projectId String?
-  project  Project? @relation(fields: [projectId], references: [id])
+  project   Project? @relation(fields: [projectId], references: [id])
 
   @@map("credentials")
 }
@@ -322,37 +322,37 @@ model Credential {
 // ─── Performance Log ────────────────────────────────────────────────────────────
 
 model PerformanceLog {
-  id          String    @id @default(cuid())
-  date        String    // "YYYY-MM-DD" — indexed, one entry per user per day
-  summary     String?   // Auto-generated or manually written summary of the day
-  tasksCompleted Int     @default(0)
-  totalMinutes  Int      @default(0)  // Total tracked time that day
-  highlights   String?   // Key accomplishments (markdown)
-  blockers     String?   // What slowed progress
-  nextDayPlan  String?   // What to focus on next
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id             String   @id @default(cuid())
+  date           String // "YYYY-MM-DD" — indexed, one entry per user per day
+  summary        String? // Auto-generated or manually written summary of the day
+  tasksCompleted Int      @default(0)
+  totalMinutes   Int      @default(0) // Total tracked time that day
+  highlights     String? // Key accomplishments (markdown)
+  blockers       String? // What slowed progress
+  nextDayPlan    String? // What to focus on next
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  authorId    String
-  author      User      @relation(fields: [authorId], references: [id])
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
 
-  entries     PerformanceEntry[]
+  entries PerformanceEntry[]
 
   @@unique([authorId, date])
   @@map("performance_logs")
 }
 
 model PerformanceEntry {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   taskId      String?
-  title       String    // e.g. "Completed task: Fix login bug" or "Worked on: API integration"
+  title       String // e.g. "Completed task: Fix login bug" or "Worked on: API integration"
   description String?
-  minutes     Int       @default(0)
-  status      String    @default("in_progress") // in_progress | done | blocked
-  createdAt   DateTime  @default(now())
+  minutes     Int      @default(0)
+  status      String   @default("in_progress") // in_progress | done | blocked
+  createdAt   DateTime @default(now())
 
-  logId      String
-  log        PerformanceLog @relation(fields: [logId], references: [id], onDelete: Cascade)
+  logId String
+  log   PerformanceLog @relation(fields: [logId], references: [id], onDelete: Cascade)
 
   @@map("performance_entries")
 }
@@ -363,13 +363,13 @@ model WorkSession {
   id          String    @id @default(cuid())
   startedAt   DateTime  @default(now())
   endedAt     DateTime?
-  minutes     Int       @default(0)  // computed on end
+  minutes     Int       @default(0) // computed on end
   taskId      String?
   description String?
   isActive    Boolean   @default(true)
 
-  authorId    String
-  author      User      @relation(fields: [authorId], references: [id])
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
 
   @@map("work_sessions")
 }

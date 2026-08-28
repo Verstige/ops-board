@@ -15,7 +15,4 @@ RUN npm ci --ignore-scripts
 COPY . .
 RUN npx prisma generate && npm run build
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
-  CMD wget -qO- http://localhost:${PORT:-3000}/api/dashboard || exit 1
-
 CMD ["npm", "start"]

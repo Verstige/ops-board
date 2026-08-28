@@ -13,8 +13,11 @@ COPY package*.json ./
 RUN npm ci --ignore-scripts
 
 COPY . .
-RUN npx prisma generate && npm run build
+# Build args passed from Railway (set via railway up --build-arg)
+ARG DATABASE_URL
+ARG GITHUB_TOKEN
+ARG NEXTAUTH_SECRET
 
-RUN chmod +x startup.sh
+RUN npx prisma generate && npm run build && npx prisma migrate deploy
 
-CMD ["./startup.sh"]
+CMD ["npm", "start"]

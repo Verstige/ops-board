@@ -8,6 +8,17 @@ import {
   IconDashboard, IconTasks, IconCalendar, IconNotes, IconCredentials,
   IconSprints, IconMilestones, IconGithub, IconInvestors, IconSun, IconMoon, IconBrandMark, IconLogout, IconMap, IconCrm,
 } from "./Icons";
+
+// Performance icon (inline SVG — simple bar chart)
+function IconPerformance({ size = 18, className }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <rect x="3" y="12" width="4" height="9" rx="1" />
+      <rect x="10" y="7" width="4" height="14" rx="1" />
+      <rect x="17" y="3" width="4" height="18" rx="1" />
+    </svg>
+  );
+}
 import { RoleBadge } from "./RoleBadge";
 import { getRoleDisplay } from "@/lib/role";
 import { useTheme } from "./ThemeProvider";
@@ -31,6 +42,7 @@ const NAV: NavItem[] = [
   { href: "/markets",      label: "Markets",      icon: <IconMap size={18} className="nav-icon" /> },
   { href: "/crm",          label: "CRM",          icon: <IconCrm size={18} className="nav-icon" /> },
   { href: "/credentials",  label: "Credentials",  icon: <IconCredentials size={18} className="nav-icon" /> },
+  { href: "/performance", label: "Performance", icon: <IconPerformance size={18} className="nav-icon" /> },
 ];
 
 function ThemeToggle() {

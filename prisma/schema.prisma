@@ -316,3 +316,58 @@ model Credential {
 
   @@map("credentials")
 }
+
+// ─── Performance Log ────────────────────────────────────────────────────────────
+
+model PerformanceLog {
+  id          String    @id @default(cuid())
+  date        String    // "YYYY-MM-DD" — indexed, one entry per user per day
+  summary     String?   // Auto-generated or manually written summary of the day
+  tasksCompleted Int     @default(0)
+  totalMinutes  Int      @default(0)  // Total tracked time that day
+  highlights   String?   // Key accomplishments (markdown)
+  blockers     String?   // What slowed progress
+  nextDayPlan  String?   // What to focus on next
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id])
+
+  entries     PerformanceEntry[]
+
+  @@unique([authorId, date])
+  @@map("performance_logs")
+}
+
+model PerformanceEntry {
+  id          String    @id @default(cuid())
+  taskId      String?
+  title       String    // e.g. "Completed task: Fix login bug" or "Worked on: API integration"
+  description String?
+  minutes     Int       @default(0)
+  status      String    @default("in_progress") // in_progress | done | blocked
+  createdAt   DateTime  @default(now())
+
+  logId      String
+  log        PerformanceLog @relation(fields: [logId], references: [id], onDelete: Cascade)
+
+  @@map("performance_entries")
+}
+
+// ─── Active Work Session ───────────────────────────────────────────────────────
+
+model WorkSession {
+  id          String    @id @default(cuid())
+  startedAt   DateTime  @default(now())
+  endedAt     DateTime?
+  minutes     Int       @default(0)  // computed on end
+  taskId      String?
+  description String?
+  isActive    Boolean   @default(true)
+
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id])
+
+  @@map("work_sessions")
+}

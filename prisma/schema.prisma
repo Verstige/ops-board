@@ -26,6 +26,8 @@ model User {
   sprints         SprintMember[]
   pushSubscriptions PushSubscription[]
   notifications     Notification[]
+  performanceLogs   PerformanceLog[]
+  workSessions      WorkSession[]
 
   @@map("users")
 }

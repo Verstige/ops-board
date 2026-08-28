@@ -34,6 +34,7 @@ type WorkSession = {
   taskId: string | null;
   startedAt: string;
   isActive: boolean;
+  minutes: number;
 };
 
 function formatDuration(minutes: number): string {

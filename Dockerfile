@@ -15,4 +15,6 @@ RUN npm ci --ignore-scripts
 COPY . .
 RUN npx prisma generate && npm run build
 
-CMD ["npm", "start"]
+RUN chmod +x startup.sh
+
+CMD ["./startup.sh"]

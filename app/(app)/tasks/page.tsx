@@ -46,6 +46,7 @@ export default function TasksPage() {
   const [newAssignee, setNewAssignee] = useState("");
   const [newPriority, setNewPriority] = useState("MEDIUM");
   const [newDue, setNewDue] = useState("");
+  const [newStatus, setNewStatus] = useState("TODO");
   const [creating, setCreating] = useState(false);
   const [createWarning, setCreateWarning] = useState<string | null>(null);
 
@@ -87,13 +88,14 @@ export default function TasksPage() {
         title: newTitle, description: newDesc,
         projectId: newProject, assigneeId: newAssignee,
         priority: newPriority, dueDate: newDue || null,
+        status: newStatus,
       }),
     });
     const data = await res.json().catch(() => null);
     setCreating(false);
     if (data?._warning) setCreateWarning(data._warning);
     setShowNew(false);
-    setNewTitle(""); setNewDesc(""); setNewProject(""); setNewAssignee(""); setNewDue("");
+    setNewTitle(""); setNewDesc(""); setNewProject(""); setNewAssignee(""); setNewDue(""); setNewStatus("TODO");
     load();
   }
 
@@ -646,13 +648,23 @@ export default function TasksPage() {
                 <div>
                   <label style={{ fontSize: 11, fontWeight: 700, marginBottom: 6, display: "block", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Priority</label>
                   <select value={newPriority} onChange={(e) => setNewPriority(e.target.value)}>
-                    {PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
-                  </select>
+                      {PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 700, marginBottom: 6, display: "block", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Due date</label>
+                    <input type="date" value={newDue} onChange={(e) => setNewDue(e.target.value)} />
+                  </div>
                 </div>
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, marginBottom: 6, display: "block", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Due date</label>
-                  <input type="date" value={newDue} onChange={(e) => setNewDue(e.target.value)} />
-                </div>
+                  <label style={{ fontSize: 11, fontWeight: 700, marginBottom: 6, display: "block", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Status</label>
+                  <select value={newStatus} onChange={(e) => setNewStatus(e.target.value)}>
+                    <option value="BACKLOG">Backlog</option>
+                    <option value="TODO">To Do</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="DONE">Done</option>
+                    <option value="BLOCKED">Blocked</option>
+                  </select>
               </div>
               <button type="submit" className="btn-primary" disabled={creating} style={{ marginTop: 8, padding: "12px" }}>
                 {creating ? (newProject === "open-local-issues" ? "Creating task + GitHub issue…" : "Creating…") : (newProject === "open-local-issues" ? "Create task + open issue →" : "Create task")}

@@ -90,13 +90,18 @@ export default function PerformancePage() {
   const todayLog = logs.find((l) => l.date === today);
   const recentLogs = logs.filter((l) => l.date !== today);
 
+  // Reset elapsed when session changes or component re-mounts
   const load = useCallback(async () => {
+    setElapsed(0);
     const [logRes, sessionRes] = await Promise.all([
       fetch("/api/performance").then((r) => r.json()),
       fetch("/api/performance/session").then((r) => r.json()),
     ]);
     setLogs(logRes.logs || []);
     setActiveSession(sessionRes);
+    if (sessionRes) {
+      setElapsed(sessionRes.isActive ? Date.now() - new Date(sessionRes.startedAt).getTime() : (sessionRes.minutes || 0) * 60000);
+    }
     if (logRes.logs?.[0]) {
       const t = logRes.logs.find((l: Log) => l.date === today);
       if (t) {
@@ -126,7 +131,7 @@ export default function PerformancePage() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [activeSession?.isActive, activeSession?.startedAt]);
+  }, [activeSession?.isActive, activeSession?.startedAt, activeSession?.id]);
 
   async function startSession() {
     const res = await fetch("/api/performance/session", {

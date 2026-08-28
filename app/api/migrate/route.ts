@@ -13,12 +13,16 @@ export async function GET() {
   const prisma = new PrismaClient({ adapter });
 
   try {
-    // Check if performance_logs table exists
-    const [logs, entries, sessions] = await Promise.all([
-      prisma.$queryRaw<[{ tbl: string | null }]>`SELECT to_regclass('public.performance_logs') as tbl`,
-      prisma.$queryRaw<[{ tbl: string | null }]>`SELECT to_regclass('public.performance_entries') as tbl`,
-      prisma.$queryRaw<[{ tbl: string | null }]>`SELECT to_regclass('public.work_sessions') as tbl`,
-    ]);
+    // Check if performance_logs table exists (cast regclass to text to avoid Prisma Unsupported type error)
+    const logs = await prisma.$queryRaw<[{ tbl: string | null }]>`
+      SELECT to_regclass('public.performance_logs')::text as tbl
+    `;
+    const entries = await prisma.$queryRaw<[{ tbl: string | null }]>`
+      SELECT to_regclass('public.performance_entries')::text as tbl
+    `;
+    const sessions = await prisma.$queryRaw<[{ tbl: string | null }]>`
+      SELECT to_regclass('public.work_sessions')::text as tbl
+    `;
 
     const hasLogs = logs[0]?.tbl;
     const hasEntries = entries[0]?.tbl;

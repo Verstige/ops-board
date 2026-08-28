@@ -229,6 +229,8 @@ model Task {
   storyPoints Int?     // for sprint velocity tracking
   githubIssueNumber Int?  // linked GitHub issue
   githubIssueUrl String?
+  notes       String?
+  completedAt DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 

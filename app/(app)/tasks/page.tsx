@@ -22,6 +22,8 @@ type Task = {
   dueDate: string | null;
   githubIssueNumber: number | null;
   githubIssueUrl: string | null;
+  notes: string | null;
+  completedAt: string | null;
   assignee: { id: string; name: string };
   project: { id: string; name: string; color: string };
 };
@@ -53,6 +55,12 @@ export default function TasksPage() {
     dueDate: string; assigneeId: string; projectId: string;
     saving: boolean; error: string | null;
   }>>({});
+
+  // Detail modal
+  const [detailTask, setDetailTask] = useState<Task | null>(null);
+  const [detailNotes, setDetailNotes] = useState("");
+  const [savingNotes, setSavingNotes] = useState(false);
+  const [notesSaved, setNotesSaved] = useState(false);
 
   const load = useCallback(async () => {
     const qs = filterProject ? `?projectId=${filterProject}` : "";
@@ -163,6 +171,33 @@ export default function TasksPage() {
     await fetch(`/api/tasks/${id}`, { method: "DELETE" });
   }
 
+  function openDetail(task: Task) {
+    setDetailTask(task);
+    setDetailNotes(task.notes ?? "");
+    setNotesSaved(false);
+  }
+
+  async function saveDetailNotes() {
+    if (!detailTask) return;
+    setSavingNotes(true);
+    await fetch(`/api/tasks/${detailTask.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notes: detailNotes }),
+    });
+    setSavingNotes(false);
+    setNotesSaved(true);
+    setTimeout(() => setNotesSaved(false), 2000);
+    setTasks((prev) => prev.map((t) => t.id === detailTask.id ? { ...t, notes: detailNotes } : t));
+    setDetailTask({ ...detailTask, notes: detailNotes });
+  }
+
+  async function moveFromDetail(newStatus: string) {
+    if (!detailTask) return;
+    await moveTask(detailTask, newStatus);
+    setDetailTask(null);
+  }
+
   return (
     <div style={{ maxWidth: 1280, margin: "0 auto" }}>
       {/* Header */}
@@ -236,10 +271,12 @@ export default function TasksPage() {
                     <div
                       key={task.id}
                       className="card glass-fade"
+                      onClick={() => openDetail(task)}
                       style={{
                         padding: 14,
                         borderLeft: `3px solid ${task.project.color}`,
                         animationDelay: "0ms",
+                        cursor: "pointer",
                       }}
                     >
                       {!isEditing ? (
@@ -284,7 +321,16 @@ export default function TasksPage() {
                             </div>
                           )}
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            {task.status === "DONE" && task.notes && (
+                            <div style={{
+                              fontSize: 11, color: "#22c55e", marginBottom: 8,
+                              fontStyle: "italic", lineHeight: 1.4,
+                              borderLeft: "2px solid #22c55e40", paddingLeft: 8,
+                            }}>
+                              {task.notes.length > 80 ? task.notes.slice(0, 80) + "…" : task.notes}
+                            </div>
+                          )}
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                               <div
                                 style={{
                                   width: 22, height: 22, borderRadius: "50%",
@@ -416,6 +462,128 @@ export default function TasksPage() {
           );
         })}
       </div>
+
+      {/* ── Detail Modal ── */}
+      {detailTask && (
+        <>
+          <div
+            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 300 }}
+            onClick={() => setDetailTask(null)}
+          />
+          <div style={{
+            position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)",
+            width: "100%", maxWidth: 580, maxHeight: "88vh",
+            background: "var(--glass-bg)", border: "1px solid var(--line)",
+            borderRadius: 16, zIndex: 301,
+            overflowY: "auto", boxShadow: "0 24px 80px rgba(0,0,0,0.55)",
+            backdropFilter: "blur(20px)",
+          }}>
+            {/* Modal header */}
+            <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid var(--line)", display: "flex", alignItems: "flex-start", gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+                  <span className={`badge badge-${detailTask.priority}`}>{detailTask.priority}</span>
+                  <span style={{ fontSize: 11, color: detailTask.project.color, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>{detailTask.project.name}</span>
+                  <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{detailTask.assignee.name}</span>
+                </div>
+                <h2 style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.3, letterSpacing: "-0.02em" }}>{detailTask.title}</h2>
+              </div>
+              <button onClick={() => setDetailTask(null)} className="btn-icon" aria-label="Close" style={{ width: 32, height: 32, borderRadius: 8 }}>
+                <IconClose size={16} />
+              </button>
+            </div>
+
+            {/* Modal body */}
+            <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
+              {detailTask.description && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-secondary)", marginBottom: 6 }}>Description</div>
+                  <p style={{ fontSize: 14, lineHeight: 1.6, color: "var(--text-primary)", whiteSpace: "pre-wrap" }}>{detailTask.description}</p>
+                </div>
+              )}
+
+              {detailTask.dueDate && (
+                <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
+                  <strong>Due:</strong> {new Date(detailTask.dueDate).toLocaleDateString()}
+                </div>
+              )}
+
+              {/* Status buttons */}
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-secondary)", marginBottom: 8 }}>Status</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {COLUMNS.map((col) => {
+                    const colColors: Record<string, string> = { TODO: "#7c7f8e", IN_PROGRESS: "#3b82f6", DONE: "#22c55e", BLOCKED: "#ef4444" };
+                    const colColor = colColors[col.key];
+                    const active = detailTask.status === col.key;
+                    return (
+                      <button
+                        key={col.key}
+                        onClick={() => moveFromDetail(col.key)}
+                        style={{
+                          padding: "6px 14px", borderRadius: 8,
+                          border: `1px solid ${active ? colColor : "var(--line)"}`,
+                          background: active ? `${colColor}20` : "transparent",
+                          color: active ? colColor : "var(--text-muted)",
+                          cursor: "pointer", fontSize: 12, fontWeight: active ? 600 : 400,
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        {col.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Completion Notes */}
+              <div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-secondary)" }}>
+                    {detailTask.status === "DONE" ? "✓ Completion Notes" : "Notes / Plan"}
+                  </div>
+                  {notesSaved && <span style={{ fontSize: 11, color: "#22c55e" }}>✓ Saved</span>}
+                </div>
+                <textarea
+                  value={detailNotes}
+                  onChange={(e) => { setDetailNotes(e.target.value); setNotesSaved(false); }}
+                  placeholder={detailTask.status === "DONE" ? "What was completed? Add outcomes, links, results…" : "Notes, context, or plan for this task…"}
+                  style={{
+                    width: "100%", minHeight: 120,
+                    background: "var(--color-bg)", border: "1px solid var(--line)",
+                    borderRadius: 10, padding: "10px 12px",
+                    fontSize: 13, lineHeight: 1.6, color: "var(--text-primary)",
+                    resize: "vertical", fontFamily: "inherit",
+                  }}
+                />
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+                  <button
+                    onClick={saveDetailNotes}
+                    disabled={savingNotes || detailNotes === detailTask.notes}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      padding: "7px 16px",
+                      background: savingNotes || detailNotes === detailTask.notes ? "var(--glass-bg)" : "var(--brand-600)",
+                      color: savingNotes || detailNotes === detailTask.notes ? "var(--text-muted)" : "#fff",
+                      border: "none", borderRadius: 8, cursor: "pointer",
+                      fontSize: 13, fontWeight: 600, opacity: savingNotes || detailNotes === detailTask.notes ? 0.5 : 1,
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    {savingNotes ? "Saving…" : "Save Notes"}
+                  </button>
+                </div>
+              </div>
+
+              {detailTask.completedAt && (
+                <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                  Completed {new Date(detailTask.completedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* New task modal */}
       {showNew && (

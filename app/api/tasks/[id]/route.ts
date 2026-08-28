@@ -25,6 +25,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       ...(body.priority !== undefined && { priority: body.priority }),
       ...(body.dueDate !== undefined && { dueDate: body.dueDate ? new Date(body.dueDate) : null }),
       ...(body.assigneeId !== undefined && { assigneeId: body.assigneeId }),
+      ...(body.notes !== undefined && { notes: body.notes }),
+      ...(body.status === 'DONE' && { completedAt: new Date() }),
     },
     include: { assignee: { select: { id: true, name: true } }, project: { select: { id: true, name: true, color: true } } },
   });

@@ -16,10 +16,16 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const projectId = searchParams.get("projectId");
 
+  // Shared notes are always visible regardless of project context.
+  // Private notes are scoped to the project if a filter is active.
   const notes = await prisma.note.findMany({
     where: {
-      ...(projectId ? { projectId } : {}),
-      OR: [{ authorId: (session.user as any).id }, { isShared: true }],
+      OR: [
+        // Own notes — scoped to project if filter is active
+        { authorId: (session.user as any).id, ...(projectId ? { projectId } : {}) },
+        // Shared notes — always visible, project filter does not apply
+        { isShared: true },
+      ],
     },
     include: { author: { select: { id: true, name: true } }, project: { select: { id: true, name: true } } },
     orderBy: { updatedAt: "desc" },
